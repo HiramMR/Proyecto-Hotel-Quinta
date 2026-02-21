@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { DM_Serif_Text } from "next/font/google";
+import { Nunito } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import Image from "next/image";
 
-const dmSerif = DM_Serif_Text({ 
-  weight: "400",
+const nunito = Nunito({ 
   subsets: ["latin"],
-  variable: "--font-dm-serif" 
+  variable: "--font-nunito" 
 });
 
 export const metadata: Metadata = {
@@ -22,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={dmSerif.className}>
+      <body className={nunito.className}>
         {/* Global Header */}
         <header className="flex items-center justify-between p-6 bg-white shadow-sm">
           <div id="logo" className="flex items-center gap-4">
@@ -32,10 +31,10 @@ export default function RootLayout({
           </div>
           
           <nav className="flex gap-6 text-lg">
-            <Link href="/" className="hover:text-blue-600 transition">Inicio</Link>
-            <Link href="/rooms" className="hover:text-blue-600 transition">Habitaciones</Link>
-            <Link href="/contact" className="hover:text-blue-600 transition">Contacto</Link>
-            <Link href="/about" className="hover:text-blue-600 transition">Nosotros</Link>
+            <Link href="/" className="hover:text-blue-600 transition text-blue-700">Inicio</Link>
+            <Link href="/rooms" className="hover:text-blue-600 transition text-blue-700">Habitaciones</Link>
+            <Link href="/contact" className="hover:text-blue-600 transition text-blue-700">Contacto</Link>
+            <Link href="/about" className="hover:text-blue-600 transition text-blue-700">Nosotros</Link>
             <Link href="/login" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Iniciar Sesión</Link>
           </nav>
         </header>
