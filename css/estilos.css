@@ -1,0 +1,60 @@
+body {
+    background-color:azure;
+    font-family: "Nunito Sans", sans-serif;
+    padding-top: 90px;
+}
+
+h1, h2, h3 {
+    font-family: "Zilla Slab", serif;
+}
+
+a {
+    text-decoration: none;
+    color: white;
+    display: block;
+    text-align: center;
+    padding: 30px 20px;
+}
+
+a:hover {
+    background-color: rgb(46, 0, 46);
+    cursor: pointer;
+}
+
+a.active {
+    background-color: rgb(46, 0, 46);
+}
+
+#nav-bar {
+    background-color: rgb(73, 1, 73);
+    color: white;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 20px;
+}
+
+nav {
+    display: flex;
+    padding-right: 25px;
+}
+
+footer {
+    background-color: rgb(73, 1, 73);
+    color: white;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+#copyright {
+    font-size: 12px;
+    font-weight: bolder;
+}
