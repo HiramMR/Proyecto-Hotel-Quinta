@@ -1,7 +1,7 @@
 body {
     background-color:azure;
     font-family: "Nunito Sans", sans-serif;
-    padding-top: 90px;
+    padding-top: 30px;
 }
 
 h1, h2, h3 {
@@ -32,6 +32,7 @@ a.active {
     top: 0;
     left: 0;
     width: 100%;
+    z-index: 1000;
     display: flex;
     justify-content: space-between;
     align-items: center;
