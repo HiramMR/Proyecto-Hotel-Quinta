@@ -6,10 +6,10 @@
     <title>Hotel Quinta Dalam</title>
     <link rel="icon" href="img/favicon.png">
     <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AlCrisG/css-habitaciones-hotel@main/habitaciones.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,100..900;1,100..900&family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
-
 </head>
 <body>
     <div id="nav-bar">
@@ -24,103 +24,181 @@
             <a href="login.html">Cuenta</a>
         </nav>
     </div>
-    <main>
-        <h2>Conoce nuestras habitaciones</h2>
-        <p>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Possimus molestiae quia sint cum iure quos eius, ipsum vero provident fugiat necessitatibus, neque aut. Sit distinctio, doloremque ratione illo similique excepturi?</p>
-        <br>
-        <table>
-            <tr>
-                <td>
-                    <form action="" method="post">
-                    <label for="busqueda">Buscar habitación:</label>
-                    <input type="text" id="busqueda" name="busqueda" placeholder="Ejemplo: Suite, Doble, etc.">
-                    <input type="submit" value="Buscar">
-                    </form>
-                </td>
-                <td>
-                    <label for="filtro">Filtros:</label>
+    <main style="margin-top: 100px;">
+        <h2 class="titulo-seccion">Conoce nuestras habitaciones</h2>
+        <div class="contenedor-filtros">
+            <form style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <label for="busqueda">Buscar:</label>
+                    <input type="text" id="busqueda" name="busqueda" placeholder="Ejemplo: Coeneo...">
+                </div>
+                <div>
+                    <label for="fecha-entrada">Entrada:</label>
+                    <input type="date" id="fecha-entrada" name="fecha-entrada">
+                </div>
+                <div>
+                    <label for="fecha-salida">Salida:</label>
+                    <input type="date" id="fecha-salida" name="fecha-salida">
+                </div>
+                <div>
+                    <label for="filtro">Tipo:</label>
                     <select id="filtro" name="filtro">
-                        <option value="">Seleccionar</option>
+                        <option value="">Todos</option>
                         <option value="suite">Suite</option>
                         <option value="doble">Doble</option>
                         <option value="individual">Individual</option>
                     </select>
-                    <input type="submit" value="Filtrar">
+                </div>
+                <input type="submit" value="Buscar Disponibilidad">
+            </form>
+        </div>
+
+        <br>
+
+        <table class="tabla-habitaciones">
+            <!-- Fila 1 -->
+            <tr>
+                <td>
+                    <img src="img/habitaciones/1.jpg" alt="Habitación Tzintzuntzan">
+                    <h3>Tzintzuntzan</h3>
+                    <p class="precio">$1,450 / Noche</p>
+                    <p>Decoración inspirada en la capital del imperio Purépecha, con detalles artesanales.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/2.jpg" alt="Habitación Paracho">
+                    <h3>Paracho</h3>
+                    <p class="precio">$1,300 / Noche</p>
+                    <p>Ambiente acústico y detalles en madera fina, honor a la capital de la guitarra.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/1.jpg" alt="Habitación Yunuén">
+                    <h3>Yunuén</h3>
+                    <p class="precio">$1,200 / Noche</p>
+                    <p>Tranquilidad isleña con vista a nuestros jardines centrales.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+            </tr>
+            <!-- Fila 2 -->
+            <tr>
+                <td>
+                    <img src="img/habitaciones/2.jpg" alt="Habitación Pátzcuaro">
+                    <h3>Pátzcuaro</h3>
+                    <p class="precio">$1,500 / Noche</p>
+                    <p>Estilo colonial mágico con toques de tradición y gran confort.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/1.jpg" alt="Habitación Coeneo">
+                    <h3>Coeneo</h3>
+                    <p class="precio">$1,100 / Noche</p>
+                    <p>La calidez de nuestro hogar, ideal para descansar plenamente.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/2.jpg" alt="Habitación Janitzio">
+                    <h3>Janitzio</h3>
+                    <p class="precio">$1,250 / Noche</p>
+                    <p>Vistas espectaculares y decoración inspirada en la tradición pesquera.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+            </tr>
+            <!-- Fila 3 -->
+            <tr>
+                <td>
+                    <img src="img/habitaciones/1.jpg" alt="Suite Quencio">
+                    <h3>Suite Quencio</h3>
+                    <p class="precio">$1,600 / Noche</p>
+                    <p>Espacio moderno y confortable con vista a la montaña.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/2.jpg" alt="Habitación Morelia">
+                    <h3>Morelia</h3>
+                    <p class="precio">$1,500 / Noche</p>
+                    <p>Elegancia en cantera rosa y amplitud digna de la capital.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/1.jpg" alt="Habitación Tacámbaro">
+                    <h3>Tacámbaro</h3>
+                    <p class="precio">$1,350 / Noche</p>
+                    <p>Frescura y vegetación, el balcón perfecto para tu descanso.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+            </tr>
+            <!-- Fila 4 -->
+            <tr>
+                <td>
+                    <img src="img/habitaciones/2.jpg" alt="Habitación Uruapan">
+                    <h3>Uruapan</h3>
+                    <p class="precio">$1,450 / Noche</p>
+                    <p>Rodeada de naturaleza, inspirada en el Parque Nacional.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/1.jpg" alt="Habitación Tlalpujahua">
+                    <h3>Tlalpujahua</h3>
+                    <p class="precio">$1,300 / Noche</p>
+                    <p>Detalles acogedores como la villa de la eterna navidad.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/2.jpg" alt="Habitación Cuitzeo">
+                    <h3>Cuitzeo</h3>
+                    <p class="precio">$1,150 / Noche</p>
+                    <p>Serenidad y reflejos de luz, un espacio para la paz interior.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+            </tr>
+            <!-- Fila 5 -->
+            <tr>
+                <td>
+                    <img src="img/habitaciones/1.jpg" alt="Habitación Cuanajo">
+                    <h3>Cuanajo</h3>
+                    <p class="precio">$1,400 / Noche</p>
+                    <p>Muebles tallados a mano y texturas rústicas de gran calidad.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/2.jpg" alt="Habitación 14">
+                    <h3>Habitación 14</h3>
+                    <p class="precio">$1,050 / Noche</p>
+                    <p>Habitación estándar cómoda y accesible.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
+                </td>
+                <td>
+                    <img src="img/habitaciones/1.jpg" alt="Habitación 15">
+                    <h3>Habitación 15</h3>
+                    <p class="precio">$1,100 / Noche</p>
+                    <p>Habitación doble con todos los servicios esenciales.</p>
+                    <a href="detalle_habitacion.html" class="btn-detalles">Ver más detalles</a>
                 </td>
             </tr>
         </table>
 
-        <br>
-
-        <div>
-            <table>
-                <tr>
-                    <td>
-                    <div>
-                        <div>
-                            <img src="https://img.freepik.com/free-photo/luxury-bedroom-hotel_1150-10836.jpg?semt=ais_wordcount_boost&w=740&q=80" width="200">
-                        </div>
-                        <div>
-                            <h3>Habitación </h3>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quisquam, voluptatum.</p>
-                        </div>
-                        
-                    </div>
-                    </td>
-                    <td>
-                    <div>
-                        <div>
-                            <img src="https://img.freepik.com/free-photo/luxury-bedroom-hotel_1150-10836.jpg?semt=ais_wordcount_boost&w=740&q=80" width="200">
-                        </div>
-                        <div>
-                            <h3>Habitación </h3>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quisquam, voluptatum.</p>
-                        </div>
-                        
-                    </div>
-                    </td>
-                    <td>
-                    <div>
-                        <div>
-                            <img src="https://img.freepik.com/free-photo/luxury-bedroom-hotel_1150-10836.jpg?semt=ais_wordcount_boost&w=740&q=80" width="200">
-                        </div>
-                        <div>
-                            <h3>Habitación </h3>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quisquam, voluptatum.</p>
-                        </div>
-                        
-                    </div>
-                    </td>
-                    <td>
-                    <div>
-                        <div>
-                            <img src="https://img.freepik.com/free-photo/luxury-bedroom-hotel_1150-10836.jpg?semt=ais_wordcount_boost&w=740&q=80" width="200">
-                        </div>
-                        <div>
-                            <h3>Habitación</h3>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quisquam, voluptatum.</p>
-                        </div>
-                        
-                    </div>
-                    </td>
-                    <td>
-                    <div>
-                        <div>
-                            <img src="https://img.freepik.com/free-photo/luxury-bedroom-hotel_1150-10836.jpg?semt=ais_wordcount_boost&w=740&q=80" width="200">
-                        </div>
-                        <div>
-                            <h3>Habitación </h3>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quisquam, voluptatum.</p>
-                        </div>
-                        
-                    </div>
-                    </td>
-                </tr>
-            </table>
-        </div>
     </main>
     <footer>
-        <p id="copyright">© 2026 Hotel Quinta Dalam. Todos los derechos reservados.</p>
+        <div id="copyright">
+            <p>© 2026 Hotel Quinta Dalam. Todos los derechos reservados.</p>
+        </div>
+        <div id="badges">
+            <p>
+                <a href="https://jigsaw.w3.org/css-validator/check/referer">
+                    <img style="border:0;width:88px;height:31px"
+                        src="https://jigsaw.w3.org/css-validator/images/vcss"
+                        alt="¡CSS Válido!" />
+                </a>
+            </p>
+            <p>
+                <a href="https://validator.w3.org/#uri=referer">
+                    <img style="border:0;width:88px;height:31px"
+                        src="https://www.w3.org/Icons/valid-html401"
+                        alt="¡HTML Válido!" />
+                </a>
+            </p>
+        </div>
     </footer>
 </body>
 </html>
