@@ -1,40 +1,59 @@
 .carrusel {
     width: 100%;
-    height: auto;
-    max-height: fit-content;
-    margin: 10px auto 0;
+    height: 100vh;
+    margin: 0;
     overflow: hidden;
+    position: relative;
 }
 
 .carrusel ul {
     display: flex;
     padding: 0;
     width: 400%;
+    height: 100%;
     animation: slide 20s infinite alternate ease-in-out;
 }
 
 .carrusel li {
     width: 100%;
+    height: 100%;
     list-style: none;
     position: relative;
 }
 
 .carrusel img {
     width: 100%;
-    height: auto;
-    filter: brightness(0.5);
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.4);
 }
 
 .texto-carrusel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
     position: absolute;
-    text-align: center;
-    padding: 0 250px;
-    top: 250px;
+    top: 40%;
     color: azure;
 }
 
 .texto-carrusel h2 {
     font-size: 3rem;
+}
+
+.texto-carrusel a {
+    margin-top: 25px;
+    background-color: rgb(73, 1, 73);
+}
+
+.texto-carrusel a {
+    background-color: rgb(73, 1, 73);
+}
+
+.texto-carrusel a:hover {
+    background-color: rgb(46, 0, 46);
 }
 
 @keyframes slide {
@@ -51,9 +70,43 @@
     100% { margin-left: -300%;}
 }
 
+.flechas-bajar {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.flechas-bajar span {
+    width: 20px;
+    height: 20px;
+    border-bottom: 3px solid white;
+    border-right: 3px solid white;
+    transform: rotate(45deg);
+    margin: -5px;
+    animation: bajar 2s infinite;
+}
+
+.flechas-bajar span:nth-child(2) {
+    animation-delay: -0.2s;
+}
+
+.flechas-bajar span:nth-child(3) {
+    animation-delay: -0.4s;
+}
+
+@keyframes bajar {
+    0% { opacity: 0; transform: rotate(45deg) translate(-15px, -15px); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(45deg) translate(15px, 15px); }
+}
+
 @media(max-width: 991px) {
     body {
-        padding: 50px;
+        padding: 50px 0;
     }
     .carrusel {
         width: 100%

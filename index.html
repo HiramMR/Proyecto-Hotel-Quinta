@@ -6,6 +6,7 @@
     <title>Hotel Quinta Dalam</title>
     <link rel="stylesheet" href="css/estilos.css">
     <link rel="stylesheet" href="css/carrusel.css">
+    <link rel="stylesheet" href="css/formulario.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,100..900;1,100..900&family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -26,34 +27,45 @@
         <div class="carrusel">
             <ul>
                 <li>
-                    <img src="img/carrusel/1.jpg">
-                    <div class="texto-carrusel">
-                        <h2>Imagen 1</h2>
-                        <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. A, fugit id unde ut accusamus laudantium adipisci quae, beatae dolorem ipsa nisi ullam velit ab necessitatibus est numquam asperiores eum dignissimos.</p>
-                    </div>
+                    <img src="img/carrusel/1.jpg" alt="Imagen 1">
                 </li>
                 <li>
-                    <img src="img/carrusel/2.jpg">
-                    <div class="texto-carrusel">
-                        <h2>Imagen 2</h2>
-                        <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. A, fugit id unde ut accusamus laudantium adipisci quae, beatae dolorem ipsa nisi ullam velit ab necessitatibus est numquam asperiores eum dignissimos.</p>
-                    </div>
+                    <img src="img/carrusel/2.jpg" alt="Imagen 2">
                 </li>
                 <li>
-                    <img src="img/carrusel/3.jpg">
-                    <div class="texto-carrusel">
-                        <h2>Imagen 3</h2>
-                        <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. A, fugit id unde ut accusamus laudantium adipisci quae, beatae dolorem ipsa nisi ullam velit ab necessitatibus est numquam asperiores eum dignissimos.</p>
-                    </div>
+                    <img src="img/carrusel/3.jpg" alt="Imagen 3">
                 </li>
                 <li>
-                    <img src="img/carrusel/4.jpg">
-                    <div class="texto-carrusel">
-                        <h2>Imagen 4</h2>
-                        <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. A, fugit id unde ut accusamus laudantium adipisci quae, beatae dolorem ipsa nisi ullam velit ab necessitatibus est numquam asperiores eum dignissimos.</p>
-                    </div>
+                    <img src="img/carrusel/4.jpg" alt="Imagen 4">
                 </li>
             </ul>
+            <div class="texto-carrusel">
+                <h2>Bienvenido a Hotel Quinta Dalam</h2>
+                <p>Disfruta de una experiencia inolvidable con las mejores comodidades y servicios de lujo en un entorno exclusivo.</p>
+                <a href="habitaciones.html">Conoce nuestras habitaciones</a>
+            </div>
+            <div class="flechas-bajar">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        <div class="tarjeta">
+            <h2>Ubicación</h2>
+            <p>Estamos ubicados en el municipio de Coeneo</p>
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d148761.79594368488!2d-101.70188683619446!3d19.787375907949095!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x842db7344483e667%3A0x4b0661da1f190c35!2sCoeneo%2C%20Mich.!5e1!3m2!1ses-419!2smx!4v1772335311436!5m2!1ses-419!2smx" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        <div class="tarjeta">
+            <h2>Contacto</h2>
+            <form>
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" name="nombre" required>
+                <label for="email">Correo Electrónico:</label>
+                <input type="email" id="email" name="email" required>
+                <label for="mensaje">Mensaje:</label>
+                <textarea id="mensaje" name="mensaje" rows="4" cols="50" required></textarea>
+                <input type="submit" value="Enviar">
+            </form>
         </div>
     </main>
     <footer>
