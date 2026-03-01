@@ -83,6 +83,14 @@ nav {
     margin: 20px auto;
 }
 
+.tarjeta p {
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    margin-left: 60px;
+    margin-right: 60px;
+}
+
 footer {
     background-color: rgb(73, 1, 73);
     color: white;
