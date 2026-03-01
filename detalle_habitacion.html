@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Quinta Dalam</title>
+    <link rel="icon" href="img/favicon.png">
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/formulario.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,100..900;1,100..900&family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="nav-bar">
+        <div id="logo">
+            <img src="img/favicon.png" alt="Logo" height="50">
+            <h1>Hotel Quinta Dalam</h1>
+        </div>
+        <nav>
+            <a href="index.html">Inicio</a>
+            <a href="habitaciones.html" class="active">Habitaciones</a>
+            <a href="nosotros.html">Nosotros</a>
+            <a href="login.html">Cuenta</a>
+        </nav>
+    </div>
+    <main>
+        <div class="tarjeta" style="margin-top: 100px;">
+            <h2>Nombre de la habitación</h2>
+            <img src="img/habitaciones/2.jpg" alt="Detalle Habitación" style="width: 100%; max-width: 500px; border-radius: 10px; margin-bottom: 15px;">
+            
+            <div style="text-align: left; width: 80%;">
+                <p><strong>Precio:</strong> $9,999 / Noche</p>
+                <p><strong>Descripción:</strong> Decoración inspirada en la capital del imperio Purépecha, con detalles artesanales. Cuenta con cama King Size, vista al jardín, baño con tina de hidromasaje y servicio a la habitación las 24 horas.</p>
+                <p><strong>Capacidad:</strong> 2 Adultos, 1 Niño</p>
+                <p><strong>Servicios:</strong> Wifi, TV, Aire Acondicionado, Frigobar.</p>
+            </div>
+
+            <a href="login.html" class="btn-reservar">Reservar Ahora</a>
+
+            <div class="contenedor-botones">
+                <a href="editar_habitacion.html" class="btn-accion btn-editar">Editar</a>
+                <button class="btn-accion btn-eliminar" onclick="if(confirm('¿Estás seguro de que deseas eliminar esta habitación?')) { alert('Habitación eliminada'); window.location.href='habitaciones.html'; }">Eliminar</button>
+            </div>
+            
+            <a href="habitaciones.html" class="pregunta">Volver a la lista</a>
+        </div>
+    </main>
+    <footer>
+        <div id="copyright">
+            <p>© 2026 Hotel Quinta Dalam. Todos los derechos reservados.</p>
+        </div>
+        <div id="badges">
+            <p>
+                <a href="https://jigsaw.w3.org/css-validator/check/referer">
+                    <img style="border:0;width:88px;height:31px"
+                        src="https://jigsaw.w3.org/css-validator/images/vcss"
+                        alt="¡CSS Válido!" />
+                </a>
+            </p>
+            <p>
+                <a href="https://validator.w3.org/#uri=referer">
+                    <img style="border:0;width:88px;height:31px"
+                        src="https://www.w3.org/Icons/valid-html401"
+                        alt="¡HTML Válido!" />
+                </a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

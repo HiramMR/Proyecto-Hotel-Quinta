@@ -69,3 +69,47 @@ textarea {
 textarea::-webkit-scrollbar {
     display: none;
 }
+
+.contenedor-botones {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.btn-accion {
+    padding: 10px 25px;
+    border-radius: 10px;
+    width: auto;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.btn-editar {
+    background-color: #ffc107;
+    color: #313131;
+}
+
+.btn-editar:hover {
+    background-color: #e0a800;
+}
+
+.btn-eliminar {
+    background-color: #e73345;
+    color: #ffffff;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-eliminar:hover {
+    background-color: #be1f2f;
+}
+
+.btn-reservar {
+    background-color: rgb(73, 1, 73);
+    padding: 12px 40px;
+    border-radius: 10px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 20px;
+}
