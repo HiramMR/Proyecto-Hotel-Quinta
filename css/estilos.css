@@ -52,6 +52,12 @@ a.active {
     box-sizing: border-box;
 }
 
+#logo {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
 nav {
     display: flex;
 }
