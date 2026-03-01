@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hotel Quinta Dalam</title>
+    <link rel="icon" href="img/favicon.png">
     <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/formulario.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,100..900;1,100..900&family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -20,27 +22,23 @@
             <a href="index.html">Inicio</a>
             <a href="habitaciones.html">Habitaciones</a>
             <a href="nosotros.html">Nosotros</a>
-            <a href="signin.html" class="active">Cuenta</a>
+            <a href="login.html" class="active">Cuenta</a>
         </nav>
     </div>
     <main>
-        <h2>Registrarse</h2>
-        
-        <div class="formulario">
-            <label for="nombre">Nombre Completo</label><br>
-            <input type="text" name="nombre" id="nombre"><br><br>
-            <label for="telefono">Teléfono</label><br>
-            <input type="number" name="telefono" id="telefono"><br><br>
-            <label for="correo">Correo Electrónico</label><br>
-            <input type="email" name="correo" id="correo"><br><br>
-            <label for="contrasena">Contraseña</label><br>
-            <input type="password" name="contrasena" id="contrasena"><br><br>
-            <label for="confirmar_contrasena">Confirmar Contraseña</label><br>
-            <input type="password" name="confirmar_contrasena" id="confirmar_contrasena"><br><br>
-            <input type="button" value="Registrarse">
+        <div class="tarjeta" style="margin-top: 100px;">
+            <h2>Iniciar Sesión</h2>
+            <form>
+                <label for="correo">Correo Electrónico:</label>
+                <input type="email" name="correo" id="correo" required>
+                <label for="contrasena">Contraseña:</label>
+                <input type="password" name="contrasena" id="contrasena" required>
+                <input type="submit" value="Iniciar Sesión">
+            </form>
+            <a class="pregunta" href="signup.html">¿Aún no tienes una cuenta? Regístrate aquí</a>
         </div>
     </main>
-    <footer>
+    <footer style="position: absolute; bottom: 0;">
         <p id="copyright">© 2026 Hotel Quinta Dalam. Todos los derechos reservados.</p>
     </footer>
 </body>

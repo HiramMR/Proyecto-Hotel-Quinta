@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hotel Quinta Dalam</title>
+    <link rel="icon" href="img/favicon.png">
     <link rel="stylesheet" href="css/estilos.css">
     <link rel="stylesheet" href="css/formulario.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,23 +22,29 @@
             <a href="index.html">Inicio</a>
             <a href="habitaciones.html">Habitaciones</a>
             <a href="nosotros.html">Nosotros</a>
-            <a href="signin.html" class="active">Cuenta</a>
+            <a href="login.html" class="active">Cuenta</a>
         </nav>
     </div>
     <main>
         <div class="tarjeta" style="margin-top: 100px;">
-            <h2>Iniciar Sesión</h2>
+            <h2>Registrarse</h2>
             <form>
-                <label for="correo">Correo Electrónico</label>
+                <label for="nombre">Nombre Completo:</label>
+                <input type="text" name="nombre" id="nombre" required>
+                <label for="telefono">Teléfono:</label>
+                <input type="number" name="telefono" id="telefono" required>
+                <label for="correo">Correo Electrónico:</label>
                 <input type="email" name="correo" id="correo" required>
-                <label for="contrasena">Contraseña</label>
+                <label for="contrasena">Contraseña:</label>
                 <input type="password" name="contrasena" id="contrasena" required>
-                <input type="submit" value="Iniciar Sesión">
+                <label for="confirmar_contrasena">Confirmar Contraseña:</label>
+                <input type="password" name="confirmar_contrasena" id="confirmar_contrasena" required>
+                <input type="submit" value="Registrarse">
             </form>
-            <a class="pregunta" href="login.html">¿Aún no tienes una cuenta? Regístrate aquí</a>
+            <a class="pregunta" href="login.html">¿Ya tienes una cuenta? Inicia sesión aquí</a>
         </div>
     </main>
-    <footer style="position: absolute; bottom: 0;">
+    <footer>
         <p id="copyright">© 2026 Hotel Quinta Dalam. Todos los derechos reservados.</p>
     </footer>
 </body>
