@@ -7,7 +7,7 @@ html::-webkit-scrollbar {
 }
 
 body {
-    background-color:azure;
+    background-color: white;
     font-family: "Nunito Sans", sans-serif;
     margin: 0;
     scrollbar-width: none;
