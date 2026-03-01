@@ -58,7 +58,7 @@ input[type="submit"]:hover {
 .pregunta:hover {
     color: rgb(46, 0, 46);
     text-decoration: underline;
-    background-color: azure;
+    background-color: white;
 }
 
 textarea {
