@@ -10,6 +10,9 @@ import Image from "next/image";
 // Define la interfaz para las propiedades (props) que recibe el componente
 interface CarouselProps {
   images?: string[]; // Array de strings que contiene las URLs de las imágenes (Opcional)
+  className?: string;
+  autoSlide?: boolean;
+  autoSlideInterval?: number;
 }
 
 // Imágenes por defecto si no se pasan props
@@ -19,7 +22,12 @@ const defaultImages = [
   "/img/banner.png"
 ];
 
-export default function Carousel({ images = defaultImages }: CarouselProps) {
+export default function Carousel({ 
+  images = defaultImages, 
+  className,
+  autoSlide = true,
+  autoSlideInterval = 5000
+}: CarouselProps) {
   // Estado para rastrear el índice de la imagen actual visible
   const [curr, setCurr] = useState(0);
 
@@ -33,18 +41,19 @@ export default function Carousel({ images = defaultImages }: CarouselProps) {
 
   // Efecto para el cambio automático de diapositivas
   useEffect(() => {
+    if (!autoSlide) return;
     // Configura un intervalo que llama a la función 'next' cada 5000ms (5 segundos)
-    const slideInterval = setInterval(next, 5000);
+    const slideInterval = setInterval(next, autoSlideInterval);
     // Función de limpieza que se ejecuta al desmontar el componente para evitar fugas de memoria
     return () => clearInterval(slideInterval);
-  }, [next]); // Se ejecuta de nuevo si la función 'next' cambia
+  }, [next, autoSlide, autoSlideInterval]); // Se ejecuta de nuevo si la función 'next' cambia
 
   return (
     // Contenedor principal del carrusel
     // overflow-hidden: oculta las imágenes que están fuera del área visible
     // relative: posicionamiento relativo para ubicar botones e indicadores dentro
     // group: permite aplicar estilos a hijos cuando se hace hover sobre este contenedor
-    <div className="overflow-hidden relative w-full h-140 mb-12  shadow-lg shadow-gray-400 group">
+    <div className={`overflow-hidden relative w-full group ${className ? className : "h-140 mb-12  shadow-lg shadow-gray-400"}`}>
       
       {/* Contenedor deslizante de las imágenes */}
       <div

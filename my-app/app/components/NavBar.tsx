@@ -72,7 +72,7 @@ export default function NavBar() {
         
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <Image src="/img/favicon.png" alt="Logo" width={40} height={40} className="w-8 h-8 md:w-10 md:h-10 object-contain" />
+          <Image src="/img/Logo.png" alt="Logo Quinta Dalam" width={40} height={40} className="w-8 h-8 md:w-10 md:h-10 object-contain" />
           <h1 className={`font-bold text-gray-800 hidden md:block tracking-tight transition-all duration-3 00 ${
             isScrolled ? "text-lg md:text-xl" : "text-xl md:text-2xl"
           }`}>
@@ -84,7 +84,7 @@ export default function NavBar() {
         <nav ref={navRef} className="relative flex items-center gap-1 bg-gray-100/80 p-1 rounded-full border border-white/50 shadow-inner">
             {/* The Moving Capsule */}
             <div 
-                className="absolute top-1 bottom-1 bg-rose-600 rounded-full shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                className="absolute top-1 bottom-1 bg-pink-700 rounded-full shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
                 style={{ 
                     left: capsuleStyle.left, 
                     width: capsuleStyle.width, 
@@ -107,7 +107,7 @@ export default function NavBar() {
         </nav>
 
         {/* Login Button */}
-        <Link href="/login" className="hidden md:block px-6 py-2.5 bg-rose-600 text-white text-sm font-bold rounded-full hover:bg-rose-700 transition shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+        <Link href="/login" className="hidden md:block px-6 py-2.5 bg-pink-700 text-white text-sm font-bold rounded-full hover:bg-pink-800 transition shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
             Iniciar Sesión
         </Link>
       </div>
