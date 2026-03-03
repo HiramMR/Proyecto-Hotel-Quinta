@@ -1,13 +1,36 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import cn from 'classnames';
 
 // Define el componente principal de la página como una función asíncrona (Server Component)
 export default function HomePage() {
+  const [isMounted, setIsMounted] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 250);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial state
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+
   // Renderiza el contenido de la página
   return (
     <main className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative h-[85vh] w-full">
+      <section className="relative h-screen w-full">
         <div className="absolute inset-0">
             <Image
                 src="/img/banner.png"
@@ -18,23 +41,33 @@ export default function HomePage() {
             />
         </div>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 px-4 text-center">
-          <h1 className="text-5xl md:text-5xl font-bold mb-6 drop-shadow-lg tracking-tight">
+
+          <h1 className={cn("transition-all duration-2000 ease-in-out relative text-5xl md:text-5xl font-bold mb-6 drop-shadow-lg tracking-tight", 
+            isMounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4", )}>
             Hotel Quinta Dalam
           </h1>
-          <p className="text-xl md:text-2xl mb-10 max-w-2xl drop-shadow-md font-light">
+          <p className={cn("transition-all duration-2000 ease-in-out relative text-xl md:text-2xl mb-10 max-w-2xl drop-shadow-md font-light",
+            isMounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4",
+          )}>
             Experimenta el lujo y la comodidad en el corazón de la ciudad. Tu escape perfecto comienza aquí.
           </p>
-          <Link 
+          {/*<Link 
             href="/rooms" 
-            className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 px-10 rounded-full transition duration-300 text-lg shadow-xl hover:scale-105 transform"
-          >
+            className={cn("transition-all duration-2000 ease-in-out relative bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 px-10 rounded-full text-lg shadow-xl hover:scale-105 transform",
+                isMounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4", pejebauzer
+            )}>
             Reservar Ahora
-          </Link>
+          </Link>*/}
         </div>
       </section>
 
-      {/* Search/Availability Bar (Floating overlap) */}
-      <div className="relative -mt-24 z-20 container mx-auto px-4 mb-20">
+      {/* Buscador de Disponibilidad  */}
+      <div className={cn('transition-all duration-3500 ease-in-out relative -mt-38 z-20 container mx-auto px-4 mb-40 ', 
+                isMounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4",
+                isScrolled 
+                ? "translate-y-28"
+                : "-translate-y-4"
+              )}>
         <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col lg:flex-row gap-6 items-end justify-between border border-gray-100">
             <div className="flex-1 w-full">
                 <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Llegada</label>
@@ -60,32 +93,6 @@ export default function HomePage() {
             </div>
         </div>
       </div>
-
-      {/* Features Section */}
-      <section className="py-16 container mx-auto px-4">
-        <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">¿Por qué elegirnos?</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Nos dedicamos a ofrecerte una experiencia inigualable con servicios de primera clase.</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div className="text-center p-8 rounded-2xl hover:bg-rose-50 transition duration-300 group">
-                <div className="text-5xl mb-6 group-hover:scale-110 transition duration-300">🌊</div>
-                <h3 className="text-xl font-bold mb-3 text-gray-800">Lorem</h3>
-                <p className="text-gray-600 leading-relaxed">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ut repudiandae nobis animi reiciendis voluptatem qui, similique vitae modi possimus, magnam quidem reprehenderit voluptates ullam doloremque consectetur aliquid vel natus dolorem!</p>
-            </div>
-            <div className="text-center p-8 rounded-2xl hover:bg-rose-50 transition duration-300 group">
-                <div className="text-5xl mb-6 group-hover:scale-110 transition duration-300">🍽️</div>
-                <h3 className="text-xl font-bold mb-3 text-gray-800">Gastronomía Exquisita</h3>
-                <p className="text-gray-600 leading-relaxed">Lorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur magnam error quidem labore consequuntur eum doloribus temporibus voluptatum aliquid in! Architecto autem iusto ut deleniti vel hic voluptatibus sit eaque?</p>
-            </div>
-            <div className="text-center p-8 rounded-2xl hover:bg-rose-50 transition duration-300 group">
-                <div className="text-5xl mb-6 group-hover:scale-110 transition duration-300">💆‍♀️</div>
-                <h3 className="text-xl font-bold mb-3 text-gray-800">Spa & Relax</h3>
-                <p className="text-gray-600 leading-relaxed">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Laboriosam eveniet reprehenderit unde distinctio quisquam, aut, modi eligendi ut asperiores praesentium nam eum culpa quae tempore obcaecati assumenda nesciunt ipsa sequi.</p>
-            </div>
-        </div>
-      </section>
 
       {/* Preview de habitaciones destacadas */}
       <section className="bg-gray-50 py-20">
@@ -170,6 +177,32 @@ export default function HomePage() {
                     </div>
                  </div>
                  {/* Agregar más cartas de habitaciones aquí */}
+            </div>
+        </div>
+      </section>
+
+     {/* Features Section */}
+      <section className="py-16 container mx-auto px-4">
+        <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">¿Por qué elegirnos?</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">Nos dedicamos a ofrecerte una experiencia inigualable con servicios de primera clase.</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="text-center p-8 rounded-2xl hover:bg-rose-50 transition duration-300 group">
+                <div className="text-5xl mb-6 group-hover:scale-110 transition duration-300">🌊</div>
+                <h3 className="text-xl font-bold mb-3 text-gray-800">Lorem</h3>
+                <p className="text-gray-600 leading-relaxed">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ut repudiandae nobis animi reiciendis voluptatem qui, similique vitae modi possimus, magnam quidem reprehenderit voluptates ullam doloremque consectetur aliquid vel natus dolorem!</p>
+            </div>
+            <div className="text-center p-8 rounded-2xl hover:bg-rose-50 transition duration-300 group">
+                <div className="text-5xl mb-6 group-hover:scale-110 transition duration-300">🍽️</div>
+                <h3 className="text-xl font-bold mb-3 text-gray-800">Gastronomía Exquisita</h3>
+                <p className="text-gray-600 leading-relaxed">Lorem ipsum dolor sit amet consectetur adipisicing elit. Consectetur magnam error quidem labore consequuntur eum doloribus temporibus voluptatum aliquid in! Architecto autem iusto ut deleniti vel hic voluptatibus sit eaque?</p>
+            </div>
+            <div className="text-center p-8 rounded-2xl hover:bg-rose-50 transition duration-300 group">
+                <div className="text-5xl mb-6 group-hover:scale-110 transition duration-300">💆‍♀️</div>
+                <h3 className="text-xl font-bold mb-3 text-gray-800">Spa & Relax</h3>
+                <p className="text-gray-600 leading-relaxed">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Laboriosam eveniet reprehenderit unde distinctio quisquam, aut, modi eligendi ut asperiores praesentium nam eum culpa quae tempore obcaecati assumenda nesciunt ipsa sequi.</p>
             </div>
         </div>
       </section>
