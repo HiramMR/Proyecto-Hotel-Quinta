@@ -7,9 +7,15 @@ import { useState, useEffect } from "react";
 // Importa el componente de imagen optimizado de Next.js
 import Image from "next/image";
 
+export interface Slide {
+  src: string;
+  content?: React.ReactNode;
+}
+
 // Define la interfaz para las propiedades (props) que recibe el componente
 interface CarouselProps {
   images?: string[]; // Array de strings que contiene las URLs de las imágenes (Opcional)
+  slides?: Slide[];
   className?: string;
   autoSlide?: boolean;
   autoSlideInterval?: number;
@@ -24,6 +30,7 @@ const defaultImages = [
 
 export default function Carousel({ 
   images = defaultImages, 
+  slides,
   className,
   autoSlide = true,
   autoSlideInterval = 5000
@@ -31,13 +38,15 @@ export default function Carousel({
   // Estado para rastrear el índice de la imagen actual visible
   const [curr, setCurr] = useState(0);
 
+  const items: Slide[] = slides || (images ? images.map(src => ({ src })) : defaultImages.map(src => ({ src })));
+
   // Función para retroceder a la imagen anterior
   const prev = () =>
-    setCurr((curr) => (curr === 0 ? images.length - 1 : curr - 1)); // Si es la primera, va a la última (circular)
+    setCurr((curr) => (curr === 0 ? items.length - 1 : curr - 1)); // Si es la primera, va a la última (circular)
   
   // Función para avanzar a la siguiente imagen
   const next = () =>
-    setCurr((curr) => (curr === images.length - 1 ? 0 : curr + 1)); // Si es la última, vuelve a la primera (circular)
+    setCurr((curr) => (curr === items.length - 1 ? 0 : curr + 1)); // Si es la última, vuelve a la primera (circular)
 
   // Efecto para el cambio automático de diapositivas
   useEffect(() => {
@@ -65,16 +74,21 @@ export default function Carousel({
         style={{ transform: `translateX(-${curr * 100}%)` }}
       >
         {/* Mapea cada URL de imagen a un elemento div con la imagen */}
-        {images.map((src, i) => (
+        {items.map((slide, i) => (
           // Contenedor individual para cada imagen
           // flex-shrink-0: evita que la imagen se encoja, manteniendo su ancho completo
           <div key={i} className="relative w-full h-full shrink-0">
             <Image
-              src={src} // URL de la imagen
+              src={slide.src} // URL de la imagen
               alt={`Slide ${i}`} // Texto alternativo para accesibilidad
               fill // Hace que la imagen llene el contenedor padre
               className="object-cover" // Recorta la imagen para cubrir el área sin deformarse
             />
+            {slide.content && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white p-4">
+                {slide.content}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -86,7 +100,7 @@ export default function Carousel({
         <button
           onClick={prev} // Llama a la función prev al hacer clic
           // hidden group-hover:block: Oculto por defecto, visible al pasar el mouse sobre el carrusel
-          className="p-1 rounded-full shadow bg-white/80 text-gray-800 hover:bg-white hidden group-hover:block transition-all"
+          className="p-1 rounded-full shadow bg-white/60 text-pink-700 hover:bg-white hidden group-hover:block transition-all"
         >
           {/* Icono de flecha izquierda (SVG) */}
           <svg
@@ -108,7 +122,7 @@ export default function Carousel({
         {/* Botón Siguiente */}
         <button
           onClick={next} // Llama a la función next al hacer clic
-          className="p-1 rounded-full shadow bg-white/80 text-gray-800 hover:bg-white hidden group-hover:block transition-all"
+          className="p-1 rounded-full shadow bg-white/60 text-pink-700 hover:bg-white hidden group-hover:block transition-all"
         >
           {/* Icono de flecha derecha (SVG) */}
           <svg
@@ -132,7 +146,7 @@ export default function Carousel({
       <div className="absolute bottom-4 right-0 left-0">
         <div className="flex items-center justify-center gap-2">
           {/* Genera un punto por cada imagen */}
-          {images.map((_, i) => (
+          {items.map((_, i) => (
             <div
               key={i}
               // Cambia el estilo si es el punto activo (curr === i)
@@ -140,7 +154,7 @@ export default function Carousel({
               // bg-opacity-50: hace el punto semitransparente si no está activo
               className={`
               transition-all w-3 h-2 bg-gray-300 rounded-full
-              ${curr === i ? "p-2" : "bg-opacity-50 bg-gray-300"}
+              ${curr === i ? "p-2" : "bg-opacity-50 bg-gray-300/60"}
             `}
             />
           ))}

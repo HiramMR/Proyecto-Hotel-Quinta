@@ -20,28 +20,32 @@ const featuredRooms = [
     title: "Suite de Lujo",
     description: "Espacio amplio con jacuzzi privado y vista panorámica al océano.",
     price: 250,
-    images: ["/img/room1.jpg", "/img/room2.jpg", "/img/room3.jpg", "/img/room4.jpg"]
+    images: ["/img/room1.jpg", "/img/room2.jpg", "/img/room3.jpg", "/img/room4.jpg"],
+    capacity: 2
   },
   {
     id: 2,
     title: "Habitación Familiar",
     description: "Espaciosa habitación ideal para familias. Cuenta con dos camas queen y área de estar confortable.",
     price: 180,
-    images: ["/img/room2.jpg", "/img/room1.jpg", "/img/room3.jpg", "/img/room4.jpg"]
+    images: ["/img/room2.jpg", "/img/room1.jpg", "/img/room3.jpg", "/img/room4.jpg"],
+    capacity: 4
   },
   {
     id: 3,
     title: "Habitación Estándar",
     description: "Comodidad y economía. Todo lo necesario para una estancia placentera y tranquila.",
     price: 100,
-    images: ["/img/room3.jpg", "/img/room2.jpg", "/img/room1.jpg", "/img/room4.jpg"]
+    images: ["/img/room3.jpg", "/img/room2.jpg", "/img/room1.jpg", "/img/room4.jpg"],
+    capacity: 2
   },
   {
     id: 4,
     title: "Habitación Sencilla",
     description: "Comodidad y economía. Todo lo necesario para una estancia placentera y tranquila.",
     price: 100,
-    images: ["/img/room4.jpg", "/img/room3.jpg", "/img/room2.jpg", "/img/room1.jpg"]
+    images: ["/img/room4.jpg", "/img/room3.jpg", "/img/room2.jpg", "/img/room1.jpg"],
+    capacity: 1
   }
 ];
 
@@ -150,6 +154,7 @@ export default function HomePage() {
                     description={room.description}
                     price={room.price}
                     images={room.images}
+                    capacity={room.capacity}
                   />
                 ))}
             </div>
