@@ -22,7 +22,9 @@ export default function RootLayout({
     <html lang="es">
       <body className={nunito.className}>
         {/* Global Header */}
-        <NavBar />
+        <div className="relative z-50">
+          <NavBar />
+        </div>
         {children}
       </body>
     </html>

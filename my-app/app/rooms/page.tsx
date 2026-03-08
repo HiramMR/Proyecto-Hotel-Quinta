@@ -104,6 +104,7 @@ export default function RoomsPage() {
             return amenity ? (
               <div key={amenityName} className="bg-white/20 p-2 rounded-full backdrop-blur-sm" title={amenityName}>
                 {amenity.icon}
+                {amenityName}
               </div>
             ) : null;
           })}
@@ -126,12 +127,12 @@ export default function RoomsPage() {
     <main className="min-h-screen bg-gray-50">
       <div className="p-8">
         {/* Título de la página */}
-        <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">
+        <h1 className="text-4xl font-bold mb-2 mt-20 text-center text-gray-800">
           Nuestras Habitaciones más Populares
         </h1>
       </div>
       
-      <Carousel slides={roomSlides} className="h-[500px] mb-12 shadow-2xl rounded-b-3xl" />
+      <Carousel slides={roomSlides} className="h-125 mb-12 shadow-2xl rounded-b-3xl" />
 
       <h2 className="text-2xl font-semibold text-center mb-6 text-gray-700">Buscar una habitación</h2>
       
