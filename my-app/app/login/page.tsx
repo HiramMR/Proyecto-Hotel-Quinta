@@ -1,47 +1,124 @@
 import Image from 'next/image';
 import Link from 'next/link';
-// Define el componente principal de la página como una función asíncrona (Server Component)
-export default async function RegisterPage() {
-  // USA DATOS FALSOS EN LUGAR DE LA BASE DE DATOS
-  // const rooms = await prisma.room.findMany(); 
 
-  // Renderiza el contenido de la página
+export default function LoginPage() {
   return (
-    // Contenedor principal con altura completa, relleno y color de fondo
     <main className="w-full">
-        <section className="relative min-h-screen w-full">
+      <section className="relative min-h-screen w-full flex items-center justify-center">
+        {/* Fondo */}
         <div className="absolute inset-0">
-            <Image
-                src="/img/banner.png"
-                alt="Hotel Quinta Dalam View"
-                fill
-                className="object-cover brightness-[0.65]"
-                priority
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 px-4 text-center">
-                <h2 className="text-4xl md:text-5xl mb-10 max-w-2xl drop-shadow-md font-bold">Iniciar Sesión</h2>
-                
-                <form className="bg-white p-8 rounded-xl shadow-md space-y-4">
-                    <div>
-                        <label htmlFor="correo" className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                        <input type="email" name="correo" id="correo" className="w-full p-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500" />
-                    </div>
-
-                    <div>
-                        <label htmlFor="contrasena" className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                        <input type="password" name="contrasena" id="contrasena" className="w-full p-2 border border-gray-300 rounded-md focus:ring-rose-500 focus:border-rose-500" />
-                    </div>
-
-
-                    <button type="submit" className="w-full bg-rose-600 text-white py-2 px-4 rounded-md hover:bg-rose-700 transition duration-200 font-medium mt-4">
-                        Iniciar Sesión
-                    </button>
-                    <a href="/forgot-password" className="block text-center text-sm text-rose-600 hover:text-rose-800 mt-2">¿Olvidaste tu contraseña?</a>
-                    <a href="/register" className="block text-center text-sm text-gray-600 hover:text-gray-800 mt-2">¿No tienes cuenta? Regístrate aquí</a>
-                </form>
-            </div>
+          <Image
+            src="/img/banner.png"
+            alt="Hotel Quinta Dalam"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(135deg, rgba(44,36,32,0.75) 0%, rgba(61,43,31,0.6) 100%)'
+            }}
+          />
         </div>
-        </section>
+
+        {/* Card de login */}
+        <div
+          className="relative z-10 w-full max-w-md mx-4"
+          style={{
+            backgroundColor: 'rgba(245,240,232,0.97)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(221,213,197,0.8)',
+            borderRadius: '4px 28px 4px 28px',
+            boxShadow: 'var(--shadow-lg)',
+            padding: '2.5rem',
+          }}
+        >
+          {/* Logo + título */}
+          <div className="text-center mb-8">
+            <p
+              className="text-xs uppercase tracking-[0.25em] mb-3"
+              style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}
+            >
+              Bienvenido de vuelta
+            </p>
+            <h1
+              className="font-display"
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '2.4rem',
+                fontWeight: 400,
+                color: 'var(--charcoal)',
+              }}
+            >
+              Iniciar Sesión
+            </h1>
+            <div
+              className="w-12 h-px mx-auto mt-4"
+              style={{ backgroundColor: 'var(--copper)', opacity: 0.5 }}
+            />
+          </div>
+
+          {/* Formulario */}
+          <form className="space-y-5">
+            <div>
+              <label
+                htmlFor="correo"
+                className="block text-xs font-semibold mb-2 uppercase tracking-widest"
+                style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
+              >
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                id="correo"
+                name="correo"
+                className="input-warm"
+                placeholder="tu@correo.com"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="contrasena"
+                className="block text-xs font-semibold mb-2 uppercase tracking-widest"
+                style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
+              >
+                Contraseña
+              </label>
+              <input
+                type="password"
+                id="contrasena"
+                name="contrasena"
+                className="input-warm"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button type="submit" className="btn-copper w-full text-center mt-2">
+              Iniciar Sesión
+            </button>
+          </form>
+
+          {/* Links secundarios */}
+          <div className="mt-6 text-center space-y-2">
+            <a
+              href="/forgot-password"
+              className="block text-xs transition-colors"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
+            >
+              ¿Olvidaste tu contraseña?
+            </a>
+            <Link
+              href="/about"
+              className="block text-xs font-medium transition-colors"
+              style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}
+            >
+              ¿No tienes cuenta? <span className="underline underline-offset-2">Regístrate aquí</span>
+            </Link>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

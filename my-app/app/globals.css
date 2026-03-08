@@ -1,40 +1,169 @@
 @import "tailwindcss";
 
+/* ============================================
+   SISTEMA DE DISEÑO — LAGO & PIEDRA
+   Hotel Quinta Dalam
+   ============================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cream:        #F5F0E8;
+  --cream-dark:   #EDE8DC;
+  --stone:        #DDD5C5;
+  --copper:       #C8813A;
+  --copper-dark:  #A8661E;
+  --wood:         #8B5E3C;
+  --wood-dark:    #3D2B1F;
+  --charcoal:     #2C2420;
+  --text-main:    #2C2420;
+  --text-muted:   #8A7E74;
+  --text-light:   #B8AFA6;
+
+  --shadow-sm:     0 2px 8px rgba(44, 36, 32, 0.08);
+  --shadow-md:     0 4px 24px rgba(44, 36, 32, 0.12);
+  --shadow-lg:     0 8px 48px rgba(44, 36, 32, 0.18);
+  --shadow-copper: 0 4px 24px rgba(200, 129, 58, 0.25);
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-ui:      'DM Sans', system-ui, sans-serif;
+  --font-body:    'Lora', Georgia, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--cream);
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Clases personalizadas usando @apply de Tailwind */
-.room-page-title {
-  @apply text-4xl font-bold mb-8 text-center text-gray-800;
+/* Tipografía */
+.font-display { font-family: var(--font-display); }
+.font-body    { font-family: var(--font-body); }
+
+/* Grain overlay */
+.grain-overlay { position: relative; }
+.grain-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
 }
 
-.room-card {
-  @apply bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow;
+/* Botones */
+.btn-copper {
+  display: inline-block;
+  background-color: var(--copper);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  padding: 0.9rem 2rem;
+  border-radius: 2px 14px 2px 14px;
+  transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+  box-shadow: var(--shadow-copper);
+}
+.btn-copper:hover {
+  background-color: var(--copper-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 32px rgba(200,129,58,0.4);
 }
 
+.btn-outline {
+  display: inline-block;
+  background: transparent;
+  color: var(--cream);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  padding: 0.9rem 2rem;
+  border: 1.5px solid rgba(245,240,232,0.5);
+  border-radius: 2px 14px 2px 14px;
+  transition: all 0.3s;
+}
+.btn-outline:hover {
+  background: rgba(245,240,232,0.1);
+  border-color: var(--cream);
+}
 
+/* Cards */
+.card-warm {
+  background-color: var(--wood-dark);
+  border-radius: 4px 20px 4px 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.card-warm:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+
+/* Inputs */
+.input-warm {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: var(--cream);
+  border: 1px solid var(--stone);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-warm:focus {
+  border-color: var(--copper);
+  box-shadow: 0 0 0 3px rgba(200,129,58,0.15);
+}
+
+/* Animaciones */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fade-up          { animation: fadeUp 0.9s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-fade-up-delay-1  { animation: fadeUp 0.9s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-fade-up-delay-2  { animation: fadeUp 0.9s 0.30s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-fade-up-delay-3  { animation: fadeUp 0.9s 0.50s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Divisor ornamental */
+.divider-ornament { display:flex; align-items:center; gap:1rem; }
+.divider-ornament::before,
+.divider-ornament::after {
+  content:''; flex:1; height:1px;
+  background: linear-gradient(to right, transparent, var(--stone), transparent);
+}
+
+/* Secciones */
+.section-dark     { background-color: var(--wood-dark); color: var(--cream); }
+.section-charcoal { background-color: var(--charcoal);  color: var(--cream); }
+.section-cream    { background-color: var(--cream-dark); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--cream-dark); }
+::-webkit-scrollbar-thumb { background: var(--stone); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--wood); }
+
+/* Legacy */
 .main-style-login {
-  @apply min-h-screen p-8 bg-gray-50 flex flex-col items-center justify-center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: var(--cream-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
