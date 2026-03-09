@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ============================================
-   SISTEMA DE DISEÑO — LAGO & PIEDRA
+   SISTEMA DE DISEÑO
    Hotel Quinta Dalam
    ============================================ */
 
@@ -74,6 +74,21 @@ body {
   background-color: var(--copper-dark);
   transform: translateY(-2px);
   box-shadow: 0 6px 32px rgba(200,129,58,0.4);
+
+}
+
+.btn-white {
+  cursor: pointer;
+  border-radius: 14px 14px 14px 14px;
+  letter-spacing: 0.06rem;
+  font-family: var(--font-ui);
+  transition: transform 0.2s, box-shadow 0.3s;
+}
+.btn-white:hover {
+  cursor: pointer;
+  border-radius: 14px 14px 14px 14px;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 32px rgba(144, 142, 140, 0.7);
 }
 
 .btn-outline {

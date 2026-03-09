@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import Carousel from '../components/Carousel';
 import RoomCard from '../components/RoomCard';
+import DatePicker from '../components/DatePicker';
 
 /* ── Hook IntersectionObserver (igual que en page.tsx) ── */
 function useInView(threshold = 0.12) {
@@ -59,6 +60,10 @@ const availableRooms = [
 
 export default function RoomsPage() {
   const [showFilters, setShowFilters] = useState(false);
+  const [showLlegada, setShowLlegada] = useState(false);
+  const [showSalida, setShowSalida] = useState(false);
+  const [llegada, setLlegada] = useState('');
+  const [salida, setSalida] = useState('');
   const [selectedCapacity, setSelectedCapacity] = useState<number | null>(null);
   const [maxPrice, setMaxPrice] = useState(10000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -98,7 +103,6 @@ export default function RoomsPage() {
 
       {/* ── TÍTULO + CAROUSEL ocupa toda la pantalla ── */}
       <section className="flex flex-col grain-overlay" style={{ height: '100vh', backgroundColor: 'var(--charcoal)', background: 'linear-gradient(135deg, var(--charcoal) 0%, var(--wood-dark) 100%)' }}>
-        {/* Título */}
         <div className="flex flex-col items-center justify-center pt-24 pb-6 text-center">
           <p className="text-xs uppercase tracking-[0.3em] mb-3" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
             Descubre tu espacio
@@ -107,14 +111,13 @@ export default function RoomsPage() {
             Nuestras <em style={{ fontWeight: 400 }}>Habitaciones</em>
           </h1>
         </div>
-        {/* Carousel ocupa el resto */}
         <div className="flex-1 min-h-0">
           <Carousel slides={roomSlides} />
         </div>
       </section>
 
       {/* ── BUSCADOR ───────────────────── */}
-      <section className="py-14" style={{ backgroundColor: 'var(--cream-dark)' }}>
+      <section className="py-14" style={{ backgroundColor: 'var(--cream-dark)', position: 'relative', zIndex: 10 }}>
         <div className="container mx-auto px-4">
           <Reveal direction="up">
             <h2 className="font-display text-center mb-8" style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--charcoal)' }}>
@@ -122,22 +125,34 @@ export default function RoomsPage() {
             </h2>
           </Reveal>
           <Reveal direction="up" delay={100}>
-            <div className="flex flex-col lg:flex-row justify-center items-end gap-4 max-w-4xl mx-auto">
-              <div className="w-full lg:flex-1">
-                <input type="text" placeholder="Ej. Pátzcuaro" className="input-warm" />
+            <div className="flex flex-col justify-center gap-3 max-w-4xl mx-auto" style={{ position: 'relative', zIndex: 50 }}>
+
+              {/* Llegada */}
+              <div className="w-full" style={{ position: 'relative', zIndex: showLlegada ? 100 : 'auto' }}>
+                <DatePicker
+                  label="Fecha de llegada"
+                  value={llegada}
+                  onChange={v => { setLlegada(v); setShowLlegada(false); }}
+                  isOpen={showLlegada}
+                  onToggle={() => { setShowLlegada(!showLlegada); setShowSalida(false); setShowFilters(false); }}
+                />
               </div>
-              <div className="flex w-full lg:w-auto gap-3">
-                <div className="relative flex-1">
-                  <span className="absolute -top-2 left-3 text-xs px-1" style={{ color: 'var(--text-muted)', backgroundColor: 'var(--cream-dark)', fontFamily: 'var(--font-ui)' }}>Llegada</span>
-                  <input type="date" className="input-warm" style={{ backgroundColor: 'var(--cream)' }} />
-                </div>
-                <div className="relative flex-1">
-                  <span className="absolute -top-2 left-3 text-xs px-1" style={{ color: 'var(--text-muted)', backgroundColor: 'var(--cream-dark)', fontFamily: 'var(--font-ui)' }}>Salida</span>
-                  <input type="date" className="input-warm" style={{ backgroundColor: 'var(--cream)' }} />
-                </div>
+
+              {/* Salida */}
+              <div className="w-full" style={{ position: 'relative', zIndex: showSalida ? 100 : 'auto' }}>
+                <DatePicker
+                  label="Fecha de salida"
+                  value={salida}
+                  onChange={v => { setSalida(v); setShowSalida(false); }}
+                  isOpen={showSalida}
+                  onToggle={() => { setShowSalida(!showSalida); setShowLlegada(false); setShowFilters(false); }}
+                />
               </div>
-              <div className="relative w-full lg:w-auto">
-                <button onClick={() => setShowFilters(!showFilters)} className="w-full flex items-center justify-center gap-2 transition-colors"
+
+              {/* Más filtros */}
+              <div className="w-full" style={{ position: 'relative', zIndex: showFilters ? 100 : 'auto' }}>
+                <button onClick={() => { setShowFilters(!showFilters); setShowLlegada(false); setShowSalida(false); }}
+                  className="w-full flex items-center justify-center gap-2 transition-colors"
                   style={{ padding: '0.75rem 1.25rem', border: `1px solid ${showFilters ? 'var(--copper)' : 'var(--stone)'}`, borderRadius: '8px', backgroundColor: showFilters ? 'rgba(200,129,58,0.05)' : 'var(--cream)', color: showFilters ? 'var(--copper)' : 'var(--text-muted)', fontFamily: 'var(--font-ui)', fontSize: '0.8rem' }}>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
@@ -145,8 +160,8 @@ export default function RoomsPage() {
                   Más filtros
                 </button>
                 {showFilters && (
-                  <div className="absolute top-full left-0 mt-2 z-20 p-5 w-80"
-                    style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', borderRadius: '4px 16px 4px 16px', boxShadow: 'var(--shadow-lg)' }}>
+                  <div className="absolute top-full left-0 mt-2 p-5 w-full"
+                    style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', borderRadius: '4px 16px 4px 16px', boxShadow: '0 20px 60px rgba(44,36,32,0.18)', zIndex: 9999 }}>
                     <div className="mb-5">
                       <label className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Capacidad</label>
                       <div className="flex gap-3">
@@ -181,6 +196,11 @@ export default function RoomsPage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Buscar — mismo ancho que los demás */}
+              <div className="w-full">
+                <Link href="/rooms" className="btn-copper block text-center w-full">Buscar disponibilidad</Link>
               </div>
             </div>
           </Reveal>
