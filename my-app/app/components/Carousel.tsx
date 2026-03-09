@@ -1,11 +1,27 @@
+// ============================================================
+// Carousel.tsx — Carrusel de imágenes reutilizable (Client Component)
+//
+// Usos en el proyecto:
+// 1. Hero de la página de inicio (con autoSlide=true y priority=true)
+// 2. Carrusel principal en /rooms (con slides que incluyen contenido JSX)
+// 3. Carrusel interno de cada RoomCard (con autoSlide=false)
+//
+// Props:
+// - images: array de rutas de imágenes (modo simple)
+// - slides: array de { src, content } (modo con contenido superpuesto)
+// - autoSlide: si avanza solo cada X milisegundos (default: true)
+// - autoSlideInterval: tiempo entre slides en ms (default: 5000)
+// - priority: si la primera imagen debe cargarse con prioridad (LCP)
+// ============================================================
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 
+// ── Tipo para slides con contenido JSX superpuesto ──
 export interface Slide {
   src: string;
-  content?: React.ReactNode;
+  content?: React.ReactNode; // Texto, botones, etc. sobre la imagen
 }
 
 interface CarouselProps {
@@ -14,9 +30,10 @@ interface CarouselProps {
   className?: string;
   autoSlide?: boolean;
   autoSlideInterval?: number;
-  priority?: boolean;
+  priority?: boolean; // true = carga inmediata de la primera imagen (mejora LCP)
 }
 
+// Imágenes por defecto si no se pasan props (fallback de emergencia)
 const defaultImages = ["/img/banner.png", "/img/banner.png", "/img/banner.png"];
 
 export default function Carousel({
@@ -27,28 +44,40 @@ export default function Carousel({
   autoSlideInterval = 5000,
   priority = false,
 }: CarouselProps) {
+  // curr: índice del slide actualmente visible
   const [curr, setCurr] = useState(0);
+
+  // items: unificamos el modo "images" y el modo "slides" en un solo array
   const items: Slide[] = slides || images.map(src => ({ src }));
 
-  // ✅ PUNTO 2: useCallback evita que next() se recree en cada render,
-  // y el useEffect solo depende del intervalo — no de curr.
+  // ── Funciones de navegación con useCallback ──
+  // useCallback memoriza la función y solo la recrea si cambia items.length.
+  // Sin esto, next() se recrearía en cada render, causando que el useEffect
+  // del intervalo se ejecute constantemente y reinicie el temporizador.
   const next = useCallback(() => {
-    setCurr(c => (c === items.length - 1 ? 0 : c + 1));
+    setCurr(c => (c === items.length - 1 ? 0 : c + 1)); // Vuelve al inicio al llegar al final
   }, [items.length]);
 
   const prev = useCallback(() => {
-    setCurr(c => (c === 0 ? items.length - 1 : c - 1));
+    setCurr(c => (c === 0 ? items.length - 1 : c - 1)); // Va al final si está en el primero
   }, [items.length]);
 
+  // ── Auto-avance ──
+  // Solo depende de next (estable gracias a useCallback), autoSlide e interval.
+  // No incluye curr en las dependencias — eso evitaba reiniciar el temporizador
+  // en cada cambio de slide.
   useEffect(() => {
     if (!autoSlide) return;
     const interval = setInterval(next, autoSlideInterval);
-    return () => clearInterval(interval);
-  }, [autoSlide, autoSlideInterval, next]); // ✅ Sin 'curr' — ya no se recrea el intervalo en cada slide
+    return () => clearInterval(interval); // Limpiar al desmontar o cambiar props
+  }, [autoSlide, autoSlideInterval, next]);
 
   return (
     <div className="relative w-full group overflow-hidden" style={{ height: '100%' }}>
 
+      {/* ── Pista de slides ──
+          Se mueve horizontalmente con transform: translateX.
+          Cada slide ocupa el 100% del ancho, por eso multiplicamos por curr. */}
       <div className={`relative w-full h-full ${className ?? ''}`}>
         <div
           className="flex transition-transform ease-out duration-700 h-full"
@@ -56,16 +85,18 @@ export default function Carousel({
         >
           {items.map((slide, i) => (
             <div key={i} className="relative w-full h-full shrink-0">
-              {/* ✅ PUNTO 1: priority en la primera imagen, lazy en el resto */}
+              {/* priority=true en el primer slide del hero mejora el LCP (Largest Contentful Paint).
+                  Los demás slides se cargan de forma lazy para no bloquear recursos. */}
               <Image
                 src={slide.src}
                 alt={`Slide ${i}`}
                 fill
                 className="object-cover"
-                priority={priority && i === 0}
-                loading={priority && i === 0 ? undefined : 'lazy'}
-                sizes="100vw"
+                priority={priority && i === 0}          // Solo el primero tiene prioridad
+                loading={priority && i === 0 ? undefined : 'lazy'} // Lazy en el resto
+                sizes="100vw" // Indica al navegador que la imagen ocupa el ancho completo
               />
+              {/* Contenido JSX superpuesto (solo en modo slides, ej. nombre de habitación) */}
               {slide.content && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white p-4">
                   {slide.content}
@@ -76,7 +107,9 @@ export default function Carousel({
         </div>
       </div>
 
-      {/* Flechas — visibles en hover en desktop, siempre visibles en móvil */}
+      {/* ── Flechas de navegación ──
+          En desktop: se muestran al hacer hover (group-hover).
+          En móvil: siempre visibles (táctil no tiene hover). */}
       <div className="absolute inset-0 flex items-center justify-between p-2 md:p-4 pointer-events-none">
         <button
           onClick={prev}
@@ -98,7 +131,9 @@ export default function Carousel({
         </button>
       </div>
 
-      {/* Puntos */}
+      {/* ── Puntos indicadores ──
+          El punto activo es más ancho (1.25rem) que los inactivos (0.5rem).
+          El click en cada punto salta directamente a ese slide. */}
       <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2">
         {items.map((_, i) => (
           <button
@@ -107,7 +142,7 @@ export default function Carousel({
             aria-label={`Ir a slide ${i + 1}`}
             className="transition-all rounded-full"
             style={{
-              width: curr === i ? '1.25rem' : '0.5rem',
+              width: curr === i ? '1.25rem' : '0.5rem', // Activo: más ancho
               height: '0.5rem',
               backgroundColor: curr === i ? 'var(--copper)' : 'rgba(245,240,232,0.5)',
             }}

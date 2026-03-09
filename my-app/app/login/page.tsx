@@ -1,3 +1,15 @@
+// ============================================================
+// login/page.tsx — Página de inicio de sesión (Client Component)
+// 'use client' es necesario para el estado `mounted` que
+// controla la animación de entrada del formulario.
+//
+// Diseño: Split-screen (pantalla dividida)
+// - Lado izquierdo (solo desktop): imagen del hotel + frase inspiracional
+// - Lado derecho: formulario de login
+//
+// En móvil/tablet solo se muestra el formulario (el lado izquierdo
+// está oculto con "hidden lg:flex").
+// ============================================================
 'use client';
 
 import Image from 'next/image';
@@ -5,14 +17,24 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function LoginPage() {
+  // mounted: empieza en false. Al activarse (useEffect), dispara la
+  // animación de entrada del formulario (fade + slide up).
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
   return (
+    // flex: los dos lados quedan uno al lado del otro en desktop
     <main className="min-h-screen flex" style={{ backgroundColor: 'var(--charcoal)' }}>
 
-      {/* ── LADO IZQUIERDO — imagen + frase ── */}
+      {/* ══════════════════════════════════════════
+          LADO IZQUIERDO — Imagen + frase
+          Solo visible en pantallas lg (1024px+).
+          Muestra la imagen del hotel con gradiente oscuro
+          y una frase de bienvenida encima.
+          ══════════════════════════════════════════ */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-end overflow-hidden">
+
+        {/* Imagen de fondo ligeramente escalada para efecto de zoom sutil */}
         <Image
           src="/img/banner.png"
           alt="Hotel Quinta Dalam"
@@ -21,20 +43,28 @@ export default function LoginPage() {
           priority
           style={{ transform: 'scale(1.04)', transformOrigin: 'center' }}
         />
+
+        {/* Gradiente oscuro de abajo hacia arriba para legibilidad del texto */}
         <div className="absolute inset-0" style={{
           background: 'linear-gradient(to top, rgba(44,36,32,0.95) 0%, rgba(44,36,32,0.3) 50%, rgba(44,36,32,0.1) 100%)'
         }} />
+
+        {/* Textura de grano (noise) encima de la imagen */}
         <div className="absolute inset-0" style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
           opacity: 0.6,
         }} />
+
+        {/* Contenido textual sobre la imagen */}
         <div className="relative z-10 p-12 pb-14">
+          {/* Línea decorativa + año de fundación */}
           <div className="flex items-center gap-3 mb-8">
             <div className="h-px w-8" style={{ backgroundColor: 'var(--copper)' }} />
             <span className="text-xs uppercase tracking-[0.3em]" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
               Desde 1987
             </span>
           </div>
+          {/* Frase principal */}
           <h2 className="mb-4 leading-tight" style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'clamp(2.2rem, 3.5vw, 3.2rem)',
@@ -47,6 +77,7 @@ export default function LoginPage() {
           <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'rgba(245,240,232,0.55)', fontFamily: 'var(--font-body)' }}>
             Accede a tu cuenta para gestionar tus reservaciones y descubrir ofertas exclusivas.
           </p>
+          {/* Ornamento decorativo: línea · punto · línea */}
           <div className="mt-10 flex items-center gap-2">
             <div className="h-px flex-1 max-w-16" style={{ backgroundColor: 'rgba(200,129,58,0.4)' }} />
             <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--copper)' }} />
@@ -55,18 +86,27 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── LADO DERECHO — formulario ── */}
+      {/* ══════════════════════════════════════════
+          LADO DERECHO — Formulario de login
+          Ocupa el 100% del ancho en móvil,
+          y el 50% en desktop (lg:w-1/2).
+          ══════════════════════════════════════════ */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 py-16 lg:px-16 xl:px-24 relative"
         style={{ backgroundColor: 'var(--cream)' }}>
+
+        {/* Gradiente radial sutil de cobre en la esquina (ambiente) */}
         <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: `radial-gradient(ellipse at 80% 20%, rgba(200,129,58,0.04) 0%, transparent 60%)`,
         }} />
+
+        {/* Contenedor del formulario con animación de entrada */}
         <div className="relative w-full max-w-sm mx-auto" style={{
           opacity: mounted ? 1 : 0,
           transform: mounted ? 'translateY(0)' : 'translateY(16px)',
           transition: 'opacity 0.6s ease, transform 0.6s ease',
         }}>
-          {/* Logo móvil */}
+
+          {/* Logo del hotel — solo visible en móvil (el lado izquierdo está oculto) */}
           <div className="lg:hidden flex items-center gap-2 mb-10">
             <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--wood-dark)' }}>
               <span style={{ color: 'var(--cream)', fontSize: '0.7rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>QD</span>
@@ -74,6 +114,7 @@ export default function LoginPage() {
             <span style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--wood-dark)', fontWeight: 600 }}>Hotel Quinta Dalam</span>
           </div>
 
+          {/* Encabezado del formulario */}
           <div className="mb-10">
             <p className="text-xs uppercase tracking-[0.25em] mb-3" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
               Bienvenido de vuelta
@@ -89,7 +130,9 @@ export default function LoginPage() {
             </h1>
           </div>
 
+          {/* Formulario de login */}
           <form className="space-y-5">
+            {/* Campo de correo */}
             <div>
               <label htmlFor="correo" className="block text-xs font-semibold mb-2 uppercase tracking-widest"
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
@@ -97,6 +140,8 @@ export default function LoginPage() {
               </label>
               <input type="email" id="correo" name="correo" className="input-warm" placeholder="tu@correo.com" />
             </div>
+
+            {/* Campo de contraseña con link "¿Olvidaste?" alineado a la derecha */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="contrasena" className="text-xs font-semibold uppercase tracking-widest"
@@ -110,25 +155,28 @@ export default function LoginPage() {
               </div>
               <input type="password" id="contrasena" name="contrasena" className="input-warm" placeholder="••••••••" />
             </div>
+
             <button type="submit" className="btn-copper w-full text-center mt-2">
               Iniciar Sesión
             </button>
           </form>
 
+          {/* Separador "o" */}
           <div className="flex items-center gap-4 my-7">
             <div className="flex-1 h-px" style={{ backgroundColor: 'var(--stone)' }} />
             <span className="text-xs" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>o</span>
             <div className="flex-1 h-px" style={{ backgroundColor: 'var(--stone)' }} />
           </div>
 
+          {/* Link a la página de registro */}
           <p className="text-center text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
             ¿No tienes cuenta?{' '}
-            <Link href="/register" className="font-semibold underline underline-offset-2"
-              style={{ color: 'var(--copper)' }}>
+            <Link href="/register" className="font-semibold underline underline-offset-2" style={{ color: 'var(--copper)' }}>
               Regístrate aquí
             </Link>
           </p>
 
+          {/* Link de regreso al inicio */}
           <div className="mt-10 pt-8 border-t" style={{ borderColor: 'var(--stone)' }}>
             <Link href="/" className="flex items-center gap-2 text-xs group"
               style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
