@@ -30,7 +30,8 @@ interface CarouselProps {
   className?: string;
   autoSlide?: boolean;
   autoSlideInterval?: number;
-  priority?: boolean; // true = carga inmediata de la primera imagen (mejora LCP)
+  priority?: boolean;
+  onImageClick?: (src: string) => void; // callback al hacer clic en la imagen activa
 }
 
 // Imágenes por defecto si no se pasan props (fallback de emergencia)
@@ -43,6 +44,7 @@ export default function Carousel({
   autoSlide = true,
   autoSlideInterval = 5000,
   priority = false,
+  onImageClick,
 }: CarouselProps) {
   // curr: índice del slide actualmente visible
   const [curr, setCurr] = useState(0);
@@ -85,16 +87,16 @@ export default function Carousel({
         >
           {items.map((slide, i) => (
             <div key={i} className="relative w-full h-full shrink-0">
-              {/* priority=true en el primer slide del hero mejora el LCP (Largest Contentful Paint).
-                  Los demás slides se cargan de forma lazy para no bloquear recursos. */}
               <Image
                 src={slide.src}
                 alt={`Slide ${i}`}
                 fill
                 className="object-cover"
-                priority={priority && i === 0}          // Solo el primero tiene prioridad
-                loading={priority && i === 0 ? undefined : 'lazy'} // Lazy en el resto
-                sizes="100vw" // Indica al navegador que la imagen ocupa el ancho completo
+                style={onImageClick ? { cursor: 'zoom-in' } : {}}
+                onClick={onImageClick ? () => onImageClick(slide.src) : undefined}
+                priority={priority && i === 0}
+                loading={priority && i === 0 ? undefined : 'lazy'}
+                sizes="100vw"
               />
               {/* Contenido JSX superpuesto (solo en modo slides, ej. nombre de habitación) */}
               {slide.content && (
