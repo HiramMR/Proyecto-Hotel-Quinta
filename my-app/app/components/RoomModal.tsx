@@ -62,6 +62,189 @@ function calcNights(llegada: string, salida: string): number {
   return diff > 0 ? diff : 1;
 }
 
+// ── Colores y posiciones del confetti (estáticos para evitar re-renders) ──
+const CONFETTI = [
+  { color: '#C8813A', left: '20%', delay: '0.1s',  size: 8  },
+  { color: '#DDD5C5', left: '10%', delay: '0.15s', size: 9  },
+  { color: '#E8A855', left: '12%', delay: '0.25s', size: 6  },
+  { color: '#8B5E3C', left: '4%', delay: '0.30s', size: 8  },
+  { color: '#C8813A', left: '5%', delay: '0.35s', size: 5  },
+  { color: '#E8A855', left: '35%', delay: '0.2s',  size: 6  },
+  { color: '#C8813A', left: '65%', delay: '0.3s',  size: 7  },
+  { color: '#DDD5C5', left: '78%', delay: '0.15s', size: 9  },
+  { color: '#E8A855', left: '12%', delay: '0.25s', size: 6  },
+  { color: '#8B5E3C', left: '88%', delay: '0.08s', size: 8  },
+  { color: '#C8813A', left: '55%', delay: '0.35s', size: 5  },
+];
+
+// ── Paso 3: Pantalla de confirmación con animaciones ──
+//
+// ESTRATEGIA: en vez de leer estado React para decidir valores CSS,
+// inyectamos un <style> con los keyframes que ya incluyen los valores
+// de stroke-dashoffset directamente. El componente siempre renderiza
+// con las animaciones activas — el delay natural (0.1s mínimo) hace
+// que el browser pinte el frame inicial antes de empezar.
+function SuccessStep({ room, llegada, salida, nights, total, loggedUser, formatDate, handleClose, setStep }: {
+  room: Room; llegada: string; salida: string; nights: number; total: number;
+  loggedUser: { nombre: string; correo: string };
+  formatDate: (d: string) => string;
+  handleClose: () => void;
+  setStep: (s: 'detail' | 'booking' | 'success') => void;
+}) {
+  return (
+    <div className="relative overflow-hidden p-10 text-center">
+
+      {/* ── KEYFRAMES inyectados inline ──
+          Se ponen aquí para que estén disponibles exactamente cuando
+          este componente monta, sin depender de globals.css cargado. */}
+      <style>{`
+        @keyframes checkDraw {
+          from { stroke-dashoffset: 60; opacity: 0; }
+          to   { stroke-dashoffset: 0;  opacity: 1; }
+        }
+        @keyframes ringPulse {
+          0%   { transform: scale(0.5);  opacity: 0; }
+          60%  { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1);    opacity: 1; }
+        }
+        @keyframes ringWave {
+          0%   { transform: scale(1);   opacity: 0.7; }
+          100% { transform: scale(2);   opacity: 0; }
+        }
+        @keyframes confettiFall {
+          0%   { transform: translateY(-10px) rotate(0deg);   opacity: 1; }
+          100% { transform: translateY(90px)  rotate(500deg); opacity: 0; }
+        }
+        @keyframes successSlideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes labelPop {
+          0%   { opacity: 0; transform: scale(0.6) translateY(6px); }
+          65%  { transform: scale(1.08); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+
+      {/* ── CONFETTI ── */}
+      {CONFETTI.map((c, i) => (
+        <div key={i} style={{
+          position: 'absolute', top: '55px', left: c.left,
+          width: c.size, height: c.size,
+          backgroundColor: c.color,
+          borderRadius: '2px',
+          animation: `confettiFall 3s ${c.delay} ease-out both`,
+          pointerEvents: 'none',
+        }} />
+      ))}
+
+      {/* ── CÍRCULO + PALOMITA ── */}
+      <div style={{ position: 'relative', width: '96px', height: '96px', margin: '0 auto 1.5rem' }}>
+
+        {/* Onda expansiva */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          borderRadius: '50%',
+          border: '2px solid var(--copper)',
+          animation: 'ringWave 1s 0.5s ease-out both',
+        }} />
+
+        {/* Círculo principal con bounce */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(200,129,58,0.1)',
+          border: '2.5px solid var(--copper)',
+          animation: 'ringPulse 0.65s 0.1s cubic-bezier(0.22,1,0.36,1) both',
+        }} />
+
+        {/* Palomita: stroke-dasharray=60 define longitud total del path.
+            El keyframe checkDraw arranca en dashoffset=60 (invisible) y
+            llega a 0 (completamente dibujado). El browser lee el 'from'
+            del keyframe como estado inicial gracias a fill-mode 'both'. */}
+        <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"
+          style={{ position: 'absolute', inset: '16px', overflow: 'visible' }}>
+          <path d="M4.5 12.75l6 6 9-13.5"
+            stroke="var(--copper)" strokeWidth={2.5}
+            style={{
+              strokeDasharray: 60,
+              animation: 'checkDraw 0.6s 0.6s ease-out both',
+            }} />
+        </svg>
+      </div>
+
+      {/* ── LABEL ── */}
+      <p style={{
+        fontFamily: 'var(--font-ui)', fontSize: '0.65rem',
+        letterSpacing: '0.3em', textTransform: 'uppercase',
+        color: 'var(--copper)', marginBottom: '0.75rem',
+        animation: 'labelPop 0.55s 1s cubic-bezier(0.22,1,0.36,1) both',
+      }}>
+        ¡Reservación confirmada!
+      </p>
+
+      {/* ── TÍTULO ── */}
+      <h2 style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: 'clamp(1.8rem, 3vw, 2.8rem)', fontWeight: 400,
+        color: 'var(--charcoal)', marginBottom: '0.5rem',
+        animation: 'successSlideUp 0.6s 1.15s cubic-bezier(0.22,1,0.36,1) both',
+      }}>
+        Nos vemos pronto,<br /><em>{loggedUser.nombre.split(' ')[0]}</em>
+      </h2>
+
+      {/* ── SUBTEXTO ── */}
+      <p style={{
+        fontFamily: 'var(--font-body)', fontSize: '0.875rem',
+        color: 'var(--text-muted)', fontStyle: 'italic',
+        maxWidth: '28rem', margin: '0 auto 2rem', lineHeight: 1.7,
+        animation: 'successSlideUp 0.6s 1.3s cubic-bezier(0.22,1,0.36,1) both',
+      }}>
+        Recibirás un correo de confirmación en{' '}
+        <strong style={{ color: 'var(--charcoal)' }}>{loggedUser.correo}</strong>{' '}
+        con todos los detalles de tu estancia en {room.title}.
+      </p>
+
+      {/* ── RESUMEN COMPACTO ── */}
+      <div style={{
+        display: 'inline-flex', flexDirection: 'column', gap: '0.5rem',
+        textAlign: 'left', padding: '1.25rem', borderRadius: '12px',
+        backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)',
+        minWidth: '260px', marginBottom: '2rem',
+        animation: 'successSlideUp 0.6s 1.45s cubic-bezier(0.22,1,0.36,1) both',
+      }}>
+        <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)', fontSize: '0.9rem', fontWeight: 700 }}>
+          {room.title}
+        </p>
+        <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+          {formatDate(llegada)} → {formatDate(salida)}
+        </p>
+        <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+          {nights} {nights === 1 ? 'noche' : 'noches'} · Total:{' '}
+          <span style={{ color: 'var(--copper)', fontWeight: 700 }}>${total}</span>
+        </p>
+      </div>
+
+      {/* ── BOTONES ── */}
+      <div style={{
+        display: 'flex', gap: '0.75rem', justifyContent: 'center',
+        animation: 'successSlideUp 0.6s 1.6s cubic-bezier(0.22,1,0.36,1) both',
+      }}>
+        <button onClick={handleClose} className="btn-copper">
+          Volver al inicio
+        </button>
+        <button onClick={() => setStep('detail')}
+          className="btn-outline"
+          style={{ color: 'var(--charcoal)', borderColor: 'var(--stone)' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}>
+          Ver habitación
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Componente reutilizable: resumen de reserva (columna derecha del paso 2) ──
 function ReservationSummary({ room, llegada, salida, nights, total, stars }: {
   room: Room; llegada: string; salida: string; nights: number; total: number; stars: number;
@@ -597,53 +780,20 @@ export default function RoomModal({ room, llegada, salida, onClose, amenitiesLis
         )}
 
         {/* ══════════════════════════════════════════
-            PASO 3: CONFIRMACIÓN FINAL
+            PASO 3: CONFIRMACIÓN FINAL — con animaciones
             ══════════════════════════════════════════ */}
         {step === 'success' && (
-          <div className="p-10 text-center">
-            {/* Ícono de check animado */}
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{ backgroundColor: 'rgba(200,129,58,0.12)', border: '2px solid var(--copper)' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"
-                className="w-10 h-10" style={{ color: 'var(--copper)' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-            </div>
-            <p className="text-xs uppercase tracking-[0.3em] mb-3" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
-              ¡Reservación confirmada!
-            </p>
-            <h2 className="font-display mb-2" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem, 3vw, 2.8rem)', fontWeight: 400, color: 'var(--charcoal)' }}>
-              Nos vemos pronto,<br /><em>{loggedUser.nombre.split(' ')[0]}</em>
-            </h2>
-            <p className="text-sm leading-relaxed max-w-md mx-auto mb-8"
-              style={{ fontFamily: 'var(--font-body)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              Recibirás un correo de confirmación en <strong style={{ color: 'var(--charcoal)' }}>{loggedUser.correo}</strong> con todos los detalles de tu estancia en {room.title}.
-            </p>
-            {/* Resumen compacto */}
-            <div className="inline-flex flex-col gap-2 text-sm p-5 rounded-xl mb-8 text-left"
-              style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)', minWidth: '260px' }}>
-              <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)' }}><strong>{room.title}</strong></p>
-              <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                {formatDate(llegada)} → {formatDate(salida)}
-              </p>
-              <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                {nights} {nights === 1 ? 'noche' : 'noches'} · Total:{' '}
-                <span style={{ color: 'var(--copper)', fontWeight: 700 }}>${total}</span>
-              </p>
-            </div>
-            <div className="flex gap-3 justify-center">
-              <button onClick={handleClose} className="btn-copper">
-                Volver al inicio
-              </button>
-              <button onClick={() => setStep('detail')}
-                className="btn-outline"
-                style={{ color: 'var(--charcoal)', borderColor: 'var(--stone)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}>
-                Ver habitación
-              </button>
-            </div>
-          </div>
+          <SuccessStep
+            room={room}
+            llegada={llegada}
+            salida={salida}
+            nights={nights}
+            total={total}
+            loggedUser={loggedUser}
+            formatDate={formatDate}
+            handleClose={handleClose}
+            setStep={setStep}
+          />
         )}
         </div>{/* ← cierre del div interior scrolleable */}
       </div>

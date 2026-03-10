@@ -183,6 +183,41 @@ body {
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* ── Animaciones de la pantalla de confirmación ── */
+
+/* Dibuja el trazo de la palomita de inicio a fin */
+@keyframes checkDraw {
+  from { stroke-dashoffset: 60; opacity: 0.2; }
+  to   { stroke-dashoffset: 0;  opacity: 1; }
+}
+/* Pulso del anillo exterior: crece y se desvanece */
+@keyframes ringPulse {
+  0%   { transform: scale(0.6);  opacity: 0; }
+  50%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+/* Anillo de onda que se expande y desaparece */
+@keyframes ringWave {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+/* Partícula de confetti: cae con rotación */
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(80px)  rotate(360deg); opacity: 0; }
+}
+/* Elementos inferiores: suben con fade escalonado */
+@keyframes successSlideUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Texto del label "RESERVACIÓN CONFIRMADA": aparece con scale */
+@keyframes labelPop {
+  0%   { opacity: 0; transform: scale(0.7) translateY(8px); }
+  70%  { transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 .animate-fade-up          { animation: fadeUp 0.9s cubic-bezier(0.22,1,0.36,1) both; }
 .animate-fade-up-delay-1  { animation: fadeUp 0.9s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
 .animate-fade-up-delay-2  { animation: fadeUp 0.9s 0.30s cubic-bezier(0.22,1,0.36,1) both; }
