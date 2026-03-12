@@ -359,7 +359,7 @@ export default function RoomModal({ room, llegada, salida, onClose, amenitiesLis
   return (
     // ── OVERLAY ──
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+      className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-8"
       style={{
         backgroundColor: visible ? 'rgba(44,36,32,0.75)' : 'rgba(44,36,32,0)',
         backdropFilter: visible ? 'blur(6px)' : 'blur(0px)',
@@ -801,7 +801,7 @@ export default function RoomModal({ room, llegada, salida, onClose, amenitiesLis
       {/* ── LIGHTBOX — foto ampliada al hacer clic en el carrusel ── */}
       {lightboxImg && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center p-6"
+          className="fixed inset-0 z-200 flex items-center justify-center p-6"
           style={{ backgroundColor: 'rgba(20,14,12,0.92)', backdropFilter: 'blur(10px)', animation: 'fadeIn 0.25s ease both' }}
           onClick={() => setLightboxImg(null)}>
           <div className="relative max-w-4xl w-full" style={{ animation: 'scaleIn 0.3s cubic-bezier(0.22,1,0.36,1) both' }}
