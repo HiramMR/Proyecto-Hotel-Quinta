@@ -1,7 +1,26 @@
 // ============================================================
-// layout.tsx — Layout raíz de la aplicación (Server Component)
-// Se ejecuta en el servidor. Envuelve TODAS las páginas.
-// Define fuentes, metadatos SEO, el NavBar y el Footer globales.
+// app/layout.tsx — Layout raíz de la aplicación (Server Component)
+//
+// TIPO: Server Component (no tiene 'use client')
+// CUÁNDO CORRE: En el servidor. Es el primer componente que Next.js
+//              renderiza para CUALQUIER página del sitio.
+//
+// RESPONSABILIDADES:
+//   1. Definir las fuentes tipográficas (Google Fonts via next/font)
+//   2. Configurar los metadatos SEO (title, description)
+//   3. Envolver TODAS las páginas con el NavBar y Footer globales
+//   4. Establecer el idioma del documento HTML (lang="es")
+//
+// JERARQUÍA:
+//   layout.tsx (este archivo)
+//     └── NavBar
+//     └── children (cualquier página: /, /rooms, /login, etc.)
+//     └── Footer
+//
+// POR QUÉ NO TIENE 'use client':
+//   El layout es un Server Component para máxima eficiencia.
+//   Los datos que necesita (fuentes, metadata) están disponibles
+//   en el servidor sin necesidad de JavaScript en el navegador.
 // ============================================================
 
 import type { Metadata } from "next";
@@ -10,15 +29,22 @@ import "./globals.css";
 import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
 
-// ── Fuente display: Cormorant Garamond ──
+// ── Fuente Display: Cormorant Garamond ──
+// Se usa para títulos principales y elementos decorativos.
+// variable: "--font-display" → la expone como variable CSS que puedes usar
+// con `var(--font-display)` en cualquier archivo CSS o style inline.
+// weight: qué variantes de peso se descargan (300=light, 700=bold, etc.)
+// subsets: solo caracteres latinos para reducir el tamaño del archivo
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  style: ["normal", "italic"],  // También descarga la versión cursiva
   variable: "--font-display",
 });
 
 // ── Fuente UI: DM Sans ──
+// Se usa para elementos de interfaz: botones, labels, nav, precios.
+// Es más legible a tamaños pequeños que Cormorant, ideal para UI.
 const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
@@ -26,23 +52,39 @@ const dmSans = DM_Sans({
 });
 
 // ── Metadatos SEO ──
+// Next.js inyecta esto automáticamente en el <head> de cada página.
+// title: aparece en la pestaña del navegador y en resultados de Google
+// description: snippet que muestra Google debajo del título en resultados
 export const metadata: Metadata = {
   title: "Hotel Quinta Dalam",
   description: "Lujo, confort y naturaleza en el corazón de Michoacán.",
 };
 
+// ── Componente RootLayout ──
+// `children` representa la página actual que Next.js está renderizando
+// (ej: cuando el usuario está en /rooms, children = <RoomsPage />)
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
+    // className en <html> expone las variables de fuentes a todo el árbol DOM.
+    // Sin esto, var(--font-display) no funcionaría porque next/font crea
+    // clases CSS que asignan las variables; esas clases deben estar en un
+    // ancestro del elemento que las usa.
     <html lang="es" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body style={{ fontFamily: "var(--font-ui)" }}>
-        {/* NavBar fijo — z-50 para siempre estar encima del contenido */}
+
+        {/* NavBar dentro de un div z-50 para que siempre quede
+            encima del contenido de las páginas (especialmente
+            las imágenes y secciones hero que son position:absolute) */}
         <div className="relative z-50">
           <NavBar />
         </div>
+
+        {/* Aquí se inyecta la página actual (/, /rooms, /contact, etc.) */}
         {children}
-        {/* Footer global — aparece en todas las páginas */}
+
+        {/* Footer global — aparece al final de TODAS las páginas */}
         <Footer />
       </body>
     </html>
