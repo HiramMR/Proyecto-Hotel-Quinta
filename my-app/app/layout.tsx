@@ -22,7 +22,7 @@
 //   Los datos que necesita (fuentes, metadata) están disponibles
 //   en el servidor sin necesidad de JavaScript en el navegador.
 // ============================================================
-
+import { AuthProvider } from '../lib/auth-context'
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
@@ -73,20 +73,14 @@ export default function RootLayout({
     // ancestro del elemento que las usa.
     <html lang="es" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body style={{ fontFamily: "var(--font-ui)" }}>
-
-        {/* NavBar dentro de un div z-50 para que siempre quede
-            encima del contenido de las páginas (especialmente
-            las imágenes y secciones hero que son position:absolute) */}
-        <div className="relative z-50">
-          <NavBar />
-        </div>
-
-        {/* Aquí se inyecta la página actual (/, /rooms, /contact, etc.) */}
-        {children}
-
-        {/* Footer global — aparece al final de TODAS las páginas */}
-        <Footer />
-      </body>
+        <AuthProvider>
+          <div className="relative z-50">
+            <NavBar />
+          </div>
+          {children}
+          <Footer />
+        </AuthProvider>
+    </body>
     </html>
   );
 }
