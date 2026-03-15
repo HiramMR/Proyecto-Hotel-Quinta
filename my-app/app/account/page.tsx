@@ -60,8 +60,12 @@ export default function AccountPage() {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
   const [activeTab, setActiveTab] = useState<'reservations' | 'profile'>(
-  tabParam === 'profile' ? 'profile' : 'reservations'
-)
+    tabParam === 'profile' ? 'profile' : 'reservations'
+  )
+
+  // ── Estado para el modal de confirmación de cancelación ──
+  const [cancelingId, setCancelingId] = useState<number | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   // Redirigir si no hay sesión
   useEffect(() => {
@@ -90,6 +94,30 @@ export default function AccountPage() {
     }
     load()
   }, [user])
+
+  // ── Verifica si faltan más de 48h para el check-in ──
+  const canCancel = (fechaLlegada: string) => {
+    const llegada = new Date(fechaLlegada + 'T00:00:00')
+    const ahora = new Date()
+    const diff = llegada.getTime() - ahora.getTime()
+    const horas = diff / (1000 * 60 * 60)
+    return horas > 48
+  }
+
+  // ── Cambia el estado de la reservación a "cancelada" en Supabase ──
+  const handleCancel = async () => {
+    if (!cancelingId) return
+    await supabase
+      .from('reservations')
+      .update({ estado: 'cancelada' })
+      .eq('id', cancelingId)
+    // Actualiza el estado local sin recargar la página
+    setReservations(prev =>
+      prev.map(r => r.id === cancelingId ? { ...r, estado: 'cancelada' } : r)
+    )
+    setConfirmOpen(false)
+    setCancelingId(null)
+  }
 
   if (loading || !user) return null
 
@@ -256,6 +284,28 @@ export default function AccountPage() {
                             ${res.total}
                           </span>
                         </div>
+
+                        {/* Botón cancelar — solo si la reservación está confirmada */}
+                        {res.estado === 'confirmada' && (
+                          <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--stone)' }}>
+                            {canCancel(res.fecha_llegada) ? (
+                              <button
+                                onClick={() => { setCancelingId(res.id); setConfirmOpen(true) }}
+                                className="text-xs font-medium transition-colors"
+                                style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}
+                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
+                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                                Cancelar reservación
+                              </button>
+                            ) : (
+                              // Menos de 48h — no se puede cancelar
+                              <p className="text-xs"
+                                style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>
+                                Ya no es posible cancelar (menos de 48h antes del check-in)
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -308,6 +358,39 @@ export default function AccountPage() {
           </div>
         )}
       </div>
+
+      {/* ── MODAL DE CONFIRMACIÓN DE CANCELACIÓN ── */}
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(44,36,32,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm p-8 rounded-2xl"
+            style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', boxShadow: 'var(--shadow-lg)' }}>
+            <h3 className="font-display text-xl mb-3"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+              ¿Cancelar reservación?
+            </h3>
+            <p className="text-sm mb-6 leading-relaxed"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+              Esta acción no se puede deshacer. La reservación quedará marcada como cancelada en tu historial.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={handleCancel}
+                className="btn-copper flex-1 text-center"
+                style={{ backgroundColor: '#c03c3c', boxShadow: 'none' }}>
+                Sí, cancelar
+              </button>
+              <button
+                onClick={() => { setConfirmOpen(false); setCancelingId(null) }}
+                className="flex-1 py-3 rounded-lg text-sm font-semibold transition-colors"
+                style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}>
+                No, mantener
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
