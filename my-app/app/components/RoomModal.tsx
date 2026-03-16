@@ -9,9 +9,10 @@
 // ============================================================
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Carousel from './Carousel';
+import DatePicker from './DatePicker';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
 
@@ -210,7 +211,7 @@ function ReservationSummary({ room, llegada, salida, nights, total, stars }: {
   );
 }
 
-export default function RoomModal({ room, llegada, salida, onClose, amenitiesList }: RoomModalProps) {
+export default function RoomModal({ room, llegada: llegadaProp, salida: salidaProp, onClose, amenitiesList }: RoomModalProps) {
   const { user, profile } = useAuth();
   const [step, setStep] = useState<'detail' | 'booking' | 'success'>('detail');
   const [visible, setVisible] = useState(false);
@@ -219,6 +220,33 @@ export default function RoomModal({ room, llegada, salida, onClose, amenitiesLis
   const [savingError, setSavingError] = useState('');
   const [saving, setSaving] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+
+  // ── Fechas editables desde el modal ──
+  const [llegada, setLlegada] = useState(llegadaProp);
+  const [salida, setSalida]   = useState(salidaProp);
+  const [showLlegada, setShowLlegada] = useState(false);
+  const [showSalida, setShowSalida]   = useState(false);
+
+  // Refs para hacer scroll automático al abrir cada picker
+  const llegadaRef = useRef<HTMLDivElement>(null);
+  const salidaRef  = useRef<HTMLDivElement>(null);
+
+  // ── Rangos bloqueados para esta habitación ──
+  const [blockedRanges, setBlockedRanges] = useState<{ from: string; to: string }[]>([]);
+
+  // Cargar fechas ocupadas de esta habitación desde Supabase
+  useEffect(() => {
+    supabase
+      .from('reservations')
+      .select('fecha_llegada, fecha_salida')
+      .eq('room_id', room.id)
+      .eq('estado', 'confirmada')
+      .then(({ data }) => {
+        setBlockedRanges(
+          (data ?? []).map(r => ({ from: r.fecha_llegada, to: r.fecha_salida }))
+        );
+      });
+  }, [room.id]);
 
   const nights = calcNights(llegada, salida);
   const total = room.price * nights;
@@ -395,17 +423,58 @@ export default function RoomModal({ room, llegada, salida, onClose, amenitiesLis
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 p-5 rounded-xl"
+                {/* ── SELECTOR DE FECHAS CON CALENDARIO ── */}
+                <div className="mb-6 p-5 rounded-xl"
                   style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
-                  <div className="text-center">
-                    <p className="text-xs uppercase tracking-widest font-semibold mb-1"
-                      style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Llegada</p>
-                    <p className="text-sm font-semibold" style={{ color: llegada ? 'var(--charcoal)' : 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
-                      {formatDate(llegada)}
-                    </p>
+                  <p className="text-xs uppercase tracking-widest font-semibold mb-4"
+                    style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                    Selecciona tus fechas
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    {/* DatePicker de llegada — recibe salida como otherDate */}
+                    <div ref={llegadaRef}>
+                      <p className="text-xs font-semibold uppercase tracking-widest mb-1.5"
+                        style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Llegada</p>
+                      <DatePicker
+                        label="Fecha de llegada"
+                        value={llegada}
+                        onChange={v => { setLlegada(v); setShowLlegada(false); }}
+                        isOpen={showLlegada}
+                        onToggle={() => {
+                          const opening = !showLlegada;
+                          setShowLlegada(opening);
+                          setShowSalida(false);
+                          if (opening) setTimeout(() => llegadaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                        }}
+                        blockedRanges={blockedRanges}
+                        otherDate={salida}
+                        inline
+                      />
+                    </div>
+                    {/* DatePicker de salida — recibe llegada como otherDate */}
+                    <div ref={salidaRef}>
+                      <p className="text-xs font-semibold uppercase tracking-widest mb-1.5"
+                        style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Salida</p>
+                      <DatePicker
+                        label="Fecha de salida"
+                        value={salida}
+                        onChange={v => { setSalida(v); setShowSalida(false); }}
+                        isOpen={showSalida}
+                        onToggle={() => {
+                          const opening = !showSalida;
+                          setShowSalida(opening);
+                          setShowLlegada(false);
+                          if (opening) setTimeout(() => salidaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                        }}
+                        blockedRanges={blockedRanges}
+                        otherDate={llegada}
+                        inline
+                      />
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="flex items-center gap-2 w-full">
+                  {/* Resumen de noches */}
+                  {llegada && salida && (
+                    <div className="flex items-center gap-2 mt-2">
                       <div className="flex-1 h-px" style={{ backgroundColor: 'var(--stone)' }} />
                       <span className="text-xs whitespace-nowrap px-2 py-0.5 rounded-full font-semibold"
                         style={{ backgroundColor: 'rgba(200,129,58,0.12)', color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
@@ -413,14 +482,7 @@ export default function RoomModal({ room, llegada, salida, onClose, amenitiesLis
                       </span>
                       <div className="flex-1 h-px" style={{ backgroundColor: 'var(--stone)' }} />
                     </div>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs uppercase tracking-widest font-semibold mb-1"
-                      style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Salida</p>
-                    <p className="text-sm font-semibold" style={{ color: salida ? 'var(--charcoal)' : 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
-                      {formatDate(salida)}
-                    </p>
-                  </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4"

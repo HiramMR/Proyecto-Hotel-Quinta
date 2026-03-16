@@ -1,13 +1,17 @@
 // ============================================================
-// rooms/page.tsx — Página de habitaciones con modal de reserva
+// rooms/page.tsx — Página de habitaciones con filtro de disponibilidad
 //
-// Estado clave:
-//   selectedRoom — habitación clickeada; si no es null, muestra RoomModal
-//   llegada/salida — fechas del buscador, se pasan al modal
+// Cambios en esta versión:
+// - Lee fechas desde los parámetros de la URL (?llegada=...&salida=...)
+// - Filtra habitaciones disponibles en Supabase según esas fechas
+// - Sin fechas: muestra todas las habitaciones
+// - Con fechas: muestra solo las que no tienen reservaciones confirmadas
+//   que se traslapen con el rango seleccionado
 // ============================================================
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Carousel from '../components/Carousel';
 import RoomCard from '../components/RoomCard';
 import RoomModal from '../components/RoomModal';
@@ -60,60 +64,106 @@ const amenitiesList = [
   { name: "Minibar",       icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3h14v18H5V3zm2 2v14h10V5H7zm2 2h2v2H9V7z" /></svg> },
 ];
 
-// ── Datos de habitaciones — tipado explícito para compatibilidad con RoomCard/RoomModal ──
 interface RoomData {
   id: number; title: string; description: string; longDescription?: string;
   price: number; images: string[]; capacity: number; popular?: boolean; stars?: number; amenities?: string[];
 }
 
 export default function RoomsPage() {
-  const [availableRooms, setAvailableRooms] = useState<RoomData[]>([]);
+  return (
+    <Suspense fallback={
+      <main style={{ backgroundColor: 'var(--cream)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Cargando...</p>
+      </main>
+    }>
+      <RoomsContent />
+    </Suspense>
+  );
+}
+
+function RoomsContent() {
+  const searchParams = useSearchParams();
+
+  // Leer fechas desde la URL si vienen del buscador del inicio
+  const llegadaParam = searchParams.get('llegada') ?? '';
+  const salidaParam  = searchParams.get('salida')  ?? '';
+
   const [isMounted, setIsMounted] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLlegada, setShowLlegada] = useState(false);
   const [showSalida, setShowSalida]   = useState(false);
-  const [llegada, setLlegada] = useState('');
-  const [salida, setSalida]   = useState('');
+
+  // Inicializar fechas con los parámetros de la URL
+  const [llegada, setLlegada] = useState(llegadaParam);
+  const [salida, setSalida]   = useState(salidaParam);
+
   const [selectedCapacity, setSelectedCapacity] = useState<number | null>(null);
   const [maxPrice, setMaxPrice] = useState(10000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-
-  // ── Estado del modal ──
-  const [selectedRoom, setSelectedRoom] = useState<typeof availableRooms[0] | null>(null);
+  const [availableRooms, setAvailableRooms] = useState<RoomData[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<RoomData | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setIsMounted(true), 200);
     return () => clearTimeout(t);
   }, []);
 
+  // ── Cargar habitaciones desde Supabase filtrando por disponibilidad ──
   useEffect(() => {
-  supabase
-    .from('rooms')
-    .select('*')
-    .order('id', { ascending: true })
-    .then(({ data }) => {
-      if (data) {
-        setAvailableRooms(data.map(r => ({
-          id: r.id,
-          title: r.title,
-          description: r.description,
-          longDescription: r.long_description,
-          price: r.price,
-          capacity: r.capacity,
-          stars: r.stars,
-          popular: r.popular,
-          images: r.images,
-          amenities: r.amenities,
+    const fetchRooms = async () => {
+      // Si hay fechas en la URL, filtrar por disponibilidad
+      if (llegadaParam && salidaParam) {
+        // Obtener IDs de habitaciones ocupadas en ese rango de fechas
+        // Una habitación está ocupada si hay una reservación confirmada donde:
+        // la llegada nueva es ANTES de la salida existente
+        // Y la salida nueva es DESPUÉS de la llegada existente
+        const { data: ocupadas } = await supabase
+          .from('reservations')
+          .select('room_id')
+          .eq('estado', 'confirmada')
+          .lt('fecha_llegada', salidaParam)
+          .gt('fecha_salida', llegadaParam)
+
+        const idsOcupadas = (ocupadas ?? []).map(r => r.room_id)
+
+        // Obtener todas las habitaciones
+        const { data } = await supabase
+          .from('rooms')
+          .select('*')
+          .order('id', { ascending: true })
+
+        // Filtrar las que no están ocupadas
+        const disponibles = (data ?? []).filter(r => !idsOcupadas.includes(r.id))
+
+        setAvailableRooms(disponibles.map(r => ({
+          id: r.id, title: r.title, description: r.description,
+          longDescription: r.long_description, price: r.price,
+          capacity: r.capacity, stars: r.stars, popular: r.popular,
+          images: r.images, amenities: r.amenities,
+        })))
+      } else {
+        // Sin fechas: mostrar todas las habitaciones
+        const { data } = await supabase
+          .from('rooms')
+          .select('*')
+          .order('id', { ascending: true })
+
+        setAvailableRooms((data ?? []).map(r => ({
+          id: r.id, title: r.title, description: r.description,
+          longDescription: r.long_description, price: r.price,
+          capacity: r.capacity, stars: r.stars, popular: r.popular,
+          images: r.images, amenities: r.amenities,
         })))
       }
-    })
-}, [])
+    }
+    fetchRooms()
+  }, [llegadaParam, salidaParam])
 
   const toggleAmenity = (a: string) =>
     setSelectedAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
 
   const roomSlides = availableRooms.map(room => ({
-    src: room.images[0],
+    src: room.images[0] ?? '/img/banner.png',
     content: (
       <div className="text-center">
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,4vw,3rem)', fontWeight: 400, color: 'var(--cream)' }}>
@@ -128,6 +178,10 @@ export default function RoomsPage() {
       </div>
     )
   }));
+
+  // Formato de fecha legible para el título de la sección
+  const formatShort = (dateStr: string) =>
+    new Date(dateStr + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
 
   return (
     <main style={{ backgroundColor: 'var(--cream)', minHeight: '100vh', overflowX: 'hidden' }}>
@@ -229,15 +283,20 @@ export default function RoomsPage() {
                 )}
               </div>
 
-              {/* Botón buscar — estaba faltando */}
+              {/* Botón buscar — filtra por disponibilidad con las fechas seleccionadas */}
               <div className="w-full">
                 <button
                   className="btn-copper w-full text-center"
-                  onClick={() => { setShowFilters(false); setShowLlegada(false); setShowSalida(false); }}>
+                  onClick={() => {
+                    const params = new URLSearchParams()
+                    if (llegada) params.set('llegada', llegada)
+                    if (salida) params.set('salida', salida)
+                    setShowFilters(false); setShowLlegada(false); setShowSalida(false);
+                    window.location.href = `/rooms?${params.toString()}`
+                  }}>
                   Buscar disponibilidad
                 </button>
               </div>
-
             </div>
           </Reveal>
         </div>
@@ -248,31 +307,62 @@ export default function RoomsPage() {
         <div className="container mx-auto px-4">
           <Reveal direction="up">
             <div className="mb-12">
+              {/* Muestra las fechas si vienen de la búsqueda */}
               <p className="text-xs uppercase tracking-[0.25em] mb-2" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
-                Disponibles para ti
+                {llegadaParam && salidaParam
+                  ? `Disponibles del ${formatShort(llegadaParam)} al ${formatShort(salidaParam)}`
+                  : 'Disponibles para ti'
+                }
               </p>
               <h2 className="font-display" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,3vw,2.8rem)', fontWeight: 400, color: 'var(--charcoal)' }}>
-                Todas nuestras <em>habitaciones</em>
+                {llegadaParam && salidaParam
+                  ? <>Habitaciones <em>disponibles</em></>
+                  : <>Todas nuestras <em>habitaciones</em></>
+                }
               </h2>
             </div>
           </Reveal>
-          <div className="flex flex-wrap justify-center gap-8">
-            {availableRooms.map((room, i) => (
-              <Reveal key={room.id} direction="up" delay={i * 120}
-                className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)]">
-                {/* RoomCard recibe onReserve para abrir el modal */}
-                <RoomCard
-                  room={room}
-                  onReserve={setSelectedRoom}
-                  amenitiesList={amenitiesList}
-                />
-              </Reveal>
-            ))}
-          </div>
+
+          {/* Mensaje si no hay habitaciones disponibles en esas fechas */}
+          {availableRooms.length === 0 && llegadaParam && salidaParam ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+                style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"
+                  className="w-7 h-7" style={{ color: 'var(--text-light)' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+              </div>
+              <h3 className="font-display text-xl mb-2"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+                No hay habitaciones disponibles
+              </h3>
+              <p className="text-sm mb-6"
+                style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+                No encontramos habitaciones disponibles para las fechas seleccionadas. Intenta con otras fechas.
+              </p>
+              <button onClick={() => window.location.href = '/rooms'} className="btn-copper">
+                Ver todas las habitaciones
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap justify-center gap-8">
+              {availableRooms.map((room, i) => (
+                <Reveal key={room.id} direction="up" delay={i * 120}
+                  className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)]">
+                  <RoomCard
+                    room={room}
+                    onReserve={setSelectedRoom}
+                    amenitiesList={amenitiesList}
+                  />
+                </Reveal>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ── MODAL — se monta solo cuando hay una habitación seleccionada ── */}
+      {/* ── MODAL ── */}
       {selectedRoom && (
         <RoomModal
           room={selectedRoom}
