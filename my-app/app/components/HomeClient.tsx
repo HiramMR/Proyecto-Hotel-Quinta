@@ -214,7 +214,7 @@ export default function HomeClient({ bannerImages, featuredRooms, features }: Ho
           </Reveal>
 
           <div className="flex flex-wrap justify-center gap-6 md:gap-8">
-            {Array.from(new Map(featuredRooms.map(r => [r.id, r])).values()).map((room, i) => (
+            {featuredRooms.map((room, i) => (
               <Reveal key={room.id} direction="up" delay={i * 100}
                 className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1.33rem)]">
                 {/* RoomCard con onReserve → abre el modal */}

@@ -12,6 +12,7 @@ import Carousel from '../components/Carousel';
 import RoomCard from '../components/RoomCard';
 import RoomModal from '../components/RoomModal';
 import DatePicker from '../components/DatePicker';
+import { supabase } from '../../lib/supabase';
 
 function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
@@ -65,38 +66,8 @@ interface RoomData {
   price: number; images: string[]; capacity: number; popular?: boolean; stars?: number; amenities?: string[];
 }
 
-const availableRooms: RoomData[] = [
-  {
-    id: 1, title: "Suite de Lujo", popular: true, stars: 5, capacity: 2, price: 250,
-    images: ["/img/room1.jpg", "/img/room2.jpg", "/img/room3.jpg", "/img/room4.jpg"],
-    amenities: ["1 Cama", "Agua caliente", "Wifi", "Minibar"],
-    description: "Espacio amplio con jacuzzi privado y vista panorámica al lago.",
-    longDescription: "Nuestra Suite de Lujo es la experiencia definitiva en Hotel Quinta Dalam. Ubicada en el piso superior con vista panorámica al Lago de Pátzcuaro, ofrece una cama king size con ropa de cama artesanal, jacuzzi privado en la terraza, sala de estar independiente y minibar surtido con productos locales. Cada amanecer sobre el lago es una obra de arte que podrás contemplar desde la comodidad de tu cama. Incluye servicio de mayordomo, desayuno gourmet y atención personalizada las 24 horas.",
-  },
-  {
-    id: 2, title: "Habitación Familiar", popular: true, stars: 4, capacity: 4, price: 180,
-    images: ["/img/room2.jpg", "/img/room1.jpg", "/img/room3.jpg", "/img/room4.jpg"],
-    amenities: ["2 Camas", "Television", "Room-service"],
-    description: "Espaciosa habitación ideal para familias con dos camas queen.",
-    longDescription: "La Habitación Familiar fue diseñada pensando en que cada miembro de la familia disfrute su estancia al máximo. Con dos camas queen size, área de estar con sofá y televisión de pantalla plana, es perfecta para viajes en familia o grupos de amigos. La distribución del espacio garantiza privacidad y confort para todos. Cuenta con servicio de cuarto las 24 horas, y está a pasos del jardín y la alberca del hotel.",
-  },
-  {
-    id: 3, title: "Habitación Estándar", popular: false, stars: 4, capacity: 2, price: 100,
-    images: ["/img/room3.jpg", "/img/room2.jpg", "/img/room1.jpg", "/img/room4.jpg"],
-    amenities: ["1 Cama", "Wifi"],
-    description: "Comodidad y calidez para una estancia placentera.",
-    longDescription: "La Habitación Estándar combina sencillez y calidez michoacana. Decorada con artesanías locales y muebles de madera tallada a mano, ofrece todo lo necesario para un descanso genuino. Cama matrimonial con colchón de alta densidad, baño con regadera de lluvia, Wi-Fi de alta velocidad y luz natural que inunda el espacio cada mañana. Ideal para viajeros que buscan comodidad sin complicaciones, a precio accesible.",
-  },
-  {
-    id: 4, title: "Habitación Sencilla", popular: false, stars: 3, capacity: 1, price: 100,
-    images: ["/img/room4.jpg", "/img/room3.jpg", "/img/room2.jpg", "/img/room1.jpg"],
-    amenities: ["1 Cama", "Toallas"],
-    description: "Descanso genuino en un entorno íntimo y acogedor.",
-    longDescription: "Perfecta para el viajero en solitario que busca un remanso de paz. La Habitación Sencilla ofrece todo lo esencial en un espacio íntimo, cálido y cuidadosamente decorado al estilo purépecha. Cama individual de alta calidad, toallas artesanales de algodón orgánico y ventana con vista al jardín interior del hotel. Una experiencia auténtica de Pátzcuaro a un precio que respeta tu bolsillo.",
-  },
-];
-
 export default function RoomsPage() {
+  const [availableRooms, setAvailableRooms] = useState<RoomData[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLlegada, setShowLlegada] = useState(false);
@@ -114,6 +85,29 @@ export default function RoomsPage() {
     const t = setTimeout(() => setIsMounted(true), 200);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+  supabase
+    .from('rooms')
+    .select('*')
+    .order('id', { ascending: true })
+    .then(({ data }) => {
+      if (data) {
+        setAvailableRooms(data.map(r => ({
+          id: r.id,
+          title: r.title,
+          description: r.description,
+          longDescription: r.long_description,
+          price: r.price,
+          capacity: r.capacity,
+          stars: r.stars,
+          popular: r.popular,
+          images: r.images,
+          amenities: r.amenities,
+        })))
+      }
+    })
+}, [])
 
   const toggleAmenity = (a: string) =>
     setSelectedAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
