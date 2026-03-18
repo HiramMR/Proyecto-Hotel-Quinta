@@ -1,20 +1,25 @@
 // ============================================================
 // RoomModal.tsx — Modal expandido de habitación
 //
-// Cambios respecto a la versión anterior:
-// - isLoggedIn ahora refleja la sesión real de Supabase
-// - handleConfirm guarda la reservación en la tabla reservations
-// - loggedUser usa los datos reales del perfil del usuario
-// - Si no hay sesión, muestra CTAs de login/register
+// Cambios en esta versión:
+// - Integración real con Stripe para pagos con tarjeta
+// - Transferencia y efectivo siguen el flujo anterior
+// - SuccessStep muestra botón para ver reservaciones
+// - La reservación se marca como pagada en Supabase tras pago exitoso
 // ============================================================
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import Carousel from './Carousel';
 import DatePicker from './DatePicker';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
+
+// Inicializar Stripe con la publishable key
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface AmenityItem { name: string; icon: React.ReactNode; }
 
@@ -67,13 +72,20 @@ const CONFETTI = [
   { color: '#C8813A', left: '55%', delay: '0.35s', size: 5  },
 ];
 
-function SuccessStep({ room, llegada, salida, nights, total, loggedUser, formatDate, handleClose, setStep }: {
+function SuccessStep({ room, llegada, salida, nights, total, metodoPago, loggedUser, formatDate, handleClose, setStep }: {
   room: Room; llegada: string; salida: string; nights: number; total: number;
+  metodoPago: string;
   loggedUser: { nombre: string; correo: string };
   formatDate: (d: string) => string;
   handleClose: () => void;
   setStep: (s: 'detail' | 'booking' | 'success') => void;
 }) {
+  const metodoPagoLabel: Record<string, string> = {
+    card: 'Tarjeta de crédito / débito',
+    transfer: 'Transferencia bancaria',
+    cash: 'Pago en recepción',
+  }
+
   return (
     <div className="relative overflow-hidden p-10 text-center">
       <style>{`
@@ -139,22 +151,44 @@ function SuccessStep({ room, llegada, salida, nights, total, loggedUser, formatD
         con todos los detalles de tu estancia en {room.title}.
       </p>
 
-      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left', padding: '1.25rem', borderRadius: '12px', backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)', minWidth: '260px', marginBottom: '2rem', animation: 'successSlideUp 0.6s 1.45s cubic-bezier(0.22,1,0.36,1) both' }}>
+      {/* Resumen completo de la reservación */}
+      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left', padding: '1.25rem', borderRadius: '12px', backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)', minWidth: '280px', marginBottom: '2rem', animation: 'successSlideUp 0.6s 1.45s cubic-bezier(0.22,1,0.36,1) both' }}>
         <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)', fontSize: '0.9rem', fontWeight: 700 }}>{room.title}</p>
-        <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{formatDate(llegada)} → {formatDate(salida)}</p>
-        <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          {nights} {nights === 1 ? 'noche' : 'noches'} · Total:{' '}
-          <span style={{ color: 'var(--copper)', fontWeight: 700 }}>${total}</span>
-        </p>
+        <div style={{ height: '1px', backgroundColor: 'var(--stone)', margin: '0.25rem 0' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.75rem' }}>Check-in</span>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)', fontSize: '0.75rem', fontWeight: 600 }}>{formatDate(llegada)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.75rem' }}>Check-out</span>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)', fontSize: '0.75rem', fontWeight: 600 }}>{formatDate(salida)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.75rem' }}>Noches</span>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)', fontSize: '0.75rem', fontWeight: 600 }}>{nights}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-muted)', fontSize: '0.75rem' }}>Método de pago</span>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)', fontSize: '0.75rem', fontWeight: 600 }}>{metodoPagoLabel[metodoPago] ?? metodoPago}</span>
+        </div>
+        <div style={{ height: '1px', backgroundColor: 'var(--stone)', margin: '0.25rem 0' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
+          <span style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)', fontSize: '0.85rem', fontWeight: 700 }}>Total</span>
+          <span style={{ fontFamily: 'var(--font-display)', color: 'var(--copper)', fontSize: '1.1rem', fontWeight: 700 }}>${total}</span>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', animation: 'successSlideUp 0.6s 1.6s cubic-bezier(0.22,1,0.36,1) both' }}>
-        <button onClick={handleClose} className="btn-copper">Volver al inicio</button>
-        <button onClick={() => setStep('detail')} className="btn-outline"
+      {/* Botones */}
+      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', animation: 'successSlideUp 0.6s 1.6s cubic-bezier(0.22,1,0.36,1) both' }}>
+        {/* Botón principal: ir a mis reservaciones */}
+        <a href="/account?tab=reservations" className="btn-copper">
+          Ver mis reservaciones
+        </a>
+        <button onClick={handleClose} className="btn-outline"
           style={{ color: 'var(--charcoal)', borderColor: 'var(--stone)' }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}>
-          Ver habitación
+          Volver al inicio
         </button>
       </div>
     </div>
@@ -208,6 +242,69 @@ function ReservationSummary({ room, llegada, salida, nights, total, stars }: {
         </p>
       </div>
     </div>
+  );
+}
+
+// ── Componente interno que usa los hooks de Stripe ──
+// Debe estar dentro del provider <Elements> para funcionar
+function StripePaymentForm({ clientSecret, reservationId, onSuccess, onError }: {
+  clientSecret: string;
+  reservationId: number;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+}) {
+  const stripe  = useStripe();
+  const elements = useElements();
+  const [paying, setPaying] = useState(false);
+
+  const handlePay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setPaying(true);
+
+    // Confirmar el pago con Stripe
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: window.location.href },
+      redirect: 'if_required', // No redirigir si no es necesario (tarjeta normal)
+    });
+
+    if (error) {
+      onError(error.message ?? 'Error al procesar el pago.');
+      setPaying(false);
+      return;
+    }
+
+    if (paymentIntent?.status === 'succeeded') {
+      // Marcar la reservación como pagada en Supabase via API Route
+      await fetch('/api/confirm-reservation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentIntentId: paymentIntent.id, reservationId }),
+      });
+      onSuccess();
+    }
+
+    setPaying(false);
+  };
+
+  return (
+    <form onSubmit={handlePay}>
+      {/* PaymentElement: formulario seguro de Stripe que muestra
+          los campos de tarjeta con el estilo configurado en options */}
+      <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+        <PaymentElement />
+      </div>
+      <button type="submit" className="btn-copper w-full text-center"
+        disabled={!stripe || paying}
+        style={{ opacity: !stripe || paying ? 0.7 : 1 }}>
+        {paying ? 'Procesando pago...' : 'Pagar ahora'}
+      </button>
+      <p className="text-xs text-center mt-3" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+        Pago seguro procesado por Stripe 🔒
+      </p>
+    </form>
   );
 }
 
@@ -288,10 +385,16 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     };
   }, [handleClose, lightboxImg]);
 
-  // ── Guardar reservación en Supabase ──
+  const [cardData, setCardData] = useState({ numero: '', nombre: '', expiry: '', cvv: '' });
+
+  // ── Stripe: clientSecret para el PaymentElement ──
+  const [clientSecret, setClientSecret] = useState('');
+  const [reservationId, setReservationId] = useState<number | null>(null);
+
+  // ── Confirmar reservación para transferencia y efectivo ──
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPayment || !user) return;
+    if (!selectedPayment || !user || selectedPayment === 'card') return;
 
     setSaving(true);
     setSavingError('');
@@ -305,6 +408,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
       total: total,
       metodo_pago: selectedPayment,
       estado: 'confirmada',
+      estado_pago: 'pendiente',
     });
 
     if (error) {
@@ -315,6 +419,64 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
 
     setSaving(false);
     setStep('success');
+  };
+
+  // ── Preparar pago con tarjeta: crear reservación + PaymentIntent ──
+  const handlePrepareCardPayment = async () => {
+    if (!user) return;
+    setSaving(true);
+    setSavingError('');
+
+    // 1. Crear la reservación con estado_pago pendiente
+    const { data: resData, error: resError } = await supabase
+      .from('reservations')
+      .insert({
+        user_id: user.id,
+        room_id: room.id,
+        fecha_llegada: llegada,
+        fecha_salida: salida,
+        noches: nights,
+        total: total,
+        metodo_pago: 'card',
+        estado: 'confirmada',
+        estado_pago: 'pendiente',
+      })
+      .select()
+      .single();
+
+    if (resError || !resData) {
+      setSavingError('No se pudo crear la reservación. Intenta de nuevo.');
+      setSaving(false);
+      return;
+    }
+
+    setReservationId(resData.id);
+
+    // 2. Crear el PaymentIntent en Stripe via API Route
+    const res = await fetch('/api/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: total,
+        currency: 'mxn',
+        metadata: {
+          reservation_id: String(resData.id),
+          user_id: user.id,
+          room_id: String(room.id),
+        }
+      })
+    });
+
+    const { clientSecret: cs, error: stripeError } = await res.json();
+
+    if (stripeError) {
+      setSavingError('Error al preparar el pago. Intenta de nuevo.');
+      setSaving(false);
+      return;
+    }
+
+    setClientSecret(cs);
+    setSaving(false);
   };
 
   return (
@@ -604,41 +766,26 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                       ))}
                     </div>
 
-                    {/* Campos de tarjeta */}
+                    {/* ── TARJETA: Formulario real de Stripe ── */}
                     {selectedPayment === 'card' && (
-                      <div className="space-y-3 p-4 rounded-lg mb-4" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
-                        <div>
-                          <label className="block text-xs font-semibold mb-1.5 uppercase tracking-widest" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Número de tarjeta</label>
-                          <input type="text" maxLength={19} className="input-warm" placeholder="1234 5678 9012 3456"
-                            value={cardData.numero}
-                            onChange={e => {
-                              const v = e.target.value.replace(/\D/g, '').substring(0, 16);
-                              const fmt = v.replace(/(.{4})/g, '$1 ').trim();
-                              setCardData(d => ({ ...d, numero: fmt }));
-                            }} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold mb-1.5 uppercase tracking-widest" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Nombre en la tarjeta</label>
-                          <input type="text" className="input-warm" placeholder="ANA GARCIA"
-                            value={cardData.nombre} onChange={e => setCardData(d => ({ ...d, nombre: e.target.value.toUpperCase() }))} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-widest" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Vencimiento</label>
-                            <input type="text" maxLength={5} className="input-warm" placeholder="MM/AA"
-                              value={cardData.expiry}
-                              onChange={e => {
-                                const v = e.target.value.replace(/\D/g, '').substring(0, 4);
-                                const fmt = v.length > 2 ? `${v.substring(0, 2)}/${v.substring(2)}` : v;
-                                setCardData(d => ({ ...d, expiry: fmt }));
-                              }} />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-widest" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>CVV</label>
-                            <input type="password" maxLength={4} className="input-warm" placeholder="•••"
-                              value={cardData.cvv} onChange={e => setCardData(d => ({ ...d, cvv: e.target.value.replace(/\D/g, '').substring(0, 4) }))} />
-                          </div>
-                        </div>
+                      <div className="mb-4">
+                        {!clientSecret ? (
+                          <button type="button" onClick={handlePrepareCardPayment}
+                            className="btn-copper w-full text-center"
+                            disabled={saving}
+                            style={{ opacity: saving ? 0.7 : 1 }}>
+                            {saving ? 'Preparando pago...' : 'Continuar con tarjeta →'}
+                          </button>
+                        ) : (
+                          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#C8813A', borderRadius: '8px' } } }}>
+                            <StripePaymentForm
+                              clientSecret={clientSecret}
+                              reservationId={reservationId!}
+                              onSuccess={() => setStep('success')}
+                              onError={(msg) => setSavingError(msg)}
+                            />
+                          </Elements>
+                        )}
                       </div>
                     )}
 
@@ -678,11 +825,14 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                       </div>
                     )}
 
-                    <button type="submit" className="btn-copper w-full text-center mt-2"
-                      style={{ opacity: selectedPayment && !saving ? 1 : 0.5, transition: 'opacity 0.2s' }}
-                      disabled={!selectedPayment || saving}>
-                      {saving ? 'Guardando reservación...' : 'Confirmar reservación'}
-                    </button>
+                    {/* Botón confirmar — solo para transferencia y efectivo */}
+                    {selectedPayment !== 'card' && (
+                      <button type="submit" className="btn-copper w-full text-center mt-2"
+                        style={{ opacity: selectedPayment && !saving ? 1 : 0.5, transition: 'opacity 0.2s' }}
+                        disabled={!selectedPayment || saving}>
+                        {saving ? 'Guardando reservación...' : 'Confirmar reservación'}
+                      </button>
+                    )}
 
                     <p className="text-xs text-center mt-3" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
                       Cancelación gratuita hasta 48 horas antes del check-in.
@@ -702,6 +852,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
             <SuccessStep
               room={room} llegada={llegada} salida={salida}
               nights={nights} total={total}
+              metodoPago={selectedPayment ?? 'card'}
               loggedUser={loggedUser}
               formatDate={formatDate}
               handleClose={handleClose}
