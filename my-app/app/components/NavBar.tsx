@@ -18,7 +18,7 @@ import { useAuth } from '../../lib/auth-context';
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, profile, isAdmin, signOut } = useAuth();
+  const { user, profile, isAdmin, loading, signOut } = useAuth();
   const navRef = useRef<HTMLElement>(null);
   const [capsuleStyle, setCapsuleStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const [isScrolled, setIsScrolled] = useState(false);

@@ -25,8 +25,11 @@ interface Reservation {
   metodo_pago: string
   estado: string
   created_at: string
+  payment_intent_id: string | null
+  refund_id: string | null
+  refund_requested: boolean | null
   profiles: { nombre: string | null; apellido: string | null; telefono: string | null }
-  rooms: { title: string }
+  rooms: { title: string; images: string[] }
 }
 
 interface UserProfile {
@@ -53,12 +56,14 @@ interface Room {
 
 const estadoColor: Record<string, string> = {
   confirmada: 'rgba(200,129,58,0.12)',
-  cancelada: 'rgba(200,60,60,0.08)',
+  pagada:     'rgba(60,160,80,0.1)',
+  cancelada:  'rgba(200,60,60,0.08)',
   completada: 'rgba(60,160,80,0.1)',
 }
 const estadoTextColor: Record<string, string> = {
   confirmada: 'var(--copper)',
-  cancelada: '#c03c3c',
+  pagada:     '#3ca050',
+  cancelada:  '#c03c3c',
   completada: '#3ca050',
 }
 const metodoPagoLabel: Record<string, string> = {
@@ -86,7 +91,7 @@ const emptyRoom: Omit<Room, 'id'> = {
 export default function AdminPage() {
   const { user, isAdmin, loading } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'reservations' | 'users' | 'rooms'>('reservations')
+  const [activeTab, setActiveTab] = useState<'reservations' | 'refunds' | 'users' | 'rooms'>('reservations')
 
   // ── Reservaciones ──
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -117,33 +122,33 @@ export default function AdminPage() {
 
   // Cargar reservaciones
   useEffect(() => {
-    if (!isAdmin) return
+    if (loading || !isAdmin) return
     supabase
       .from('reservations')
-      .select(`*, profiles(nombre, apellido, telefono), rooms(title)`)
+      .select(`*, profiles(nombre, apellido, telefono), rooms(title, images)`)
       .order('created_at', { ascending: false })
       .then(({ data }) => { setReservations(data ?? []); setLoadingRes(false) })
-  }, [isAdmin])
+  }, [isAdmin, loading])
 
   // Cargar usuarios
   useEffect(() => {
-    if (!isAdmin) return
+    if (loading || !isAdmin) return
     supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false })
       .then(({ data }) => { setUsers(data ?? []); setLoadingUsers(false) })
-  }, [isAdmin])
+  }, [isAdmin, loading])
 
   // Cargar habitaciones
   useEffect(() => {
-    if (!isAdmin) return
+    if (loading || !isAdmin) return
     supabase
       .from('rooms')
       .select('*')
       .order('id', { ascending: true })
       .then(({ data }) => { setRooms(data ?? []); setLoadingRooms(false) })
-  }, [isAdmin])
+  }, [isAdmin, loading])
 
   // ── Cambiar estado de reservación ──
   const handleEstadoChange = async (id: number, nuevoEstado: string) => {
@@ -252,6 +257,7 @@ export default function AdminPage() {
           <div className="flex gap-0">
             {[
               { id: 'reservations', label: 'Reservaciones' },
+              { id: 'refunds',      label: 'Reembolsos' },
               { id: 'users',        label: 'Usuarios' },
               { id: 'rooms',        label: 'Habitaciones' },
             ].map(tab => (
@@ -301,7 +307,15 @@ export default function AdminPage() {
                   <div key={res.id} className="p-5 rounded-2xl"
                     style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
+                      <div className="flex gap-4 flex-1 min-w-0">
+                        {/* Imagen */}
+                        {res.rooms?.images?.[0] && (
+                          <div className="relative w-20 h-16 rounded-xl overflow-hidden shrink-0">
+                            <img src={res.rooms.images[0]} alt={res.rooms?.title}
+                              className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
                         {/* Habitación y huésped */}
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-display text-base font-semibold"
@@ -324,6 +338,7 @@ export default function AdminPage() {
                         <p className="text-xs" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
                           #{res.id} · {new Date(res.created_at).toLocaleDateString('es-MX')}
                         </p>
+                      </div>
                       </div>
 
                       {/* Total + selector de estado */}
@@ -351,6 +366,134 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════
+            TAB: REEMBOLSOS
+        ══════════════════════════ */}
+        {activeTab === 'refunds' && (
+          <div>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="font-display"
+                  style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--charcoal)' }}>
+                  Solicitudes de <em>reembolso</em>
+                </h2>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+                  Reembolsos manuales pendientes por transferencia o efectivo.
+                </p>
+              </div>
+              <span className="text-xs px-3 py-1 rounded-full"
+                style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>
+                {reservations.filter(r => r.refund_requested && r.estado === 'cancelada').length} pendientes
+              </span>
+            </div>
+
+            {loadingRes ? (
+              <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Cargando...</p>
+            ) : reservations.filter(r => r.refund_requested && r.estado === 'cancelada').length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: 'rgba(60,160,80,0.1)', border: '1px solid rgba(60,160,80,0.2)' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="#3ca050" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </div>
+                <p className="text-sm" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+                  No hay solicitudes de reembolso pendientes.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reservations
+                  .filter(r => r.refund_requested && r.estado === 'cancelada')
+                  .map(res => (
+                    <div key={res.id} className="p-6 rounded-2xl"
+                      style={{ backgroundColor: 'var(--cream-dark)', border: '1.5px solid rgba(200,60,60,0.2)' }}>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex-1">
+                          {/* Header */}
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
+                            <span className="text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide"
+                              style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>
+                              Reembolso pendiente
+                            </span>
+                            <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
+                              style={{ backgroundColor: 'var(--cream)', color: 'var(--text-muted)', fontFamily: 'var(--font-ui)', border: '1px solid var(--stone)' }}>
+                              #{res.id}
+                            </span>
+                          </div>
+
+                          {/* Info reservación */}
+                          <h3 className="font-display text-lg font-semibold mb-1"
+                            style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+                            {res.rooms?.title ?? '—'}
+                          </h3>
+                          <p className="text-xs mb-3" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                            {formatDate(res.fecha_llegada)} → {formatDate(res.fecha_salida)} · {res.noches} noches
+                          </p>
+
+                          {/* Info cliente */}
+                          <div className="p-3 rounded-lg mb-3"
+                            style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)' }}>
+                            <p className="text-xs font-semibold uppercase tracking-widest mb-2"
+                              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                              Datos del cliente
+                            </p>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>
+                              {res.profiles?.nombre
+                                ? `${res.profiles.nombre} ${res.profiles.apellido ?? ''}`.trim()
+                                : 'Usuario desconocido'}
+                            </p>
+                            {res.profiles?.telefono && (
+                              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                                📞 {res.profiles.telefono}
+                              </p>
+                            )}
+                            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                              Método: <strong>{metodoPagoLabel[res.metodo_pago] ?? res.metodo_pago}</strong>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Monto y botón */}
+                        <div className="flex flex-col items-end gap-3 shrink-0">
+                          <div className="text-right">
+                            <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Monto a reembolsar</p>
+                            <span className="font-display text-2xl font-semibold"
+                              style={{ fontFamily: 'var(--font-display)', color: 'var(--copper)' }}>
+                              ${res.total}
+                            </span>
+                          </div>
+                          {/* Botón marcar como reembolsado */}
+                          <button
+                            onClick={async () => {
+                              await supabase
+                                .from('reservations')
+                                .update({ refund_requested: false })
+                                .eq('id', res.id)
+                              setReservations(prev =>
+                                prev.map(r => r.id === res.id ? { ...r, refund_requested: false } : r)
+                              )
+                            }}
+                            className="text-xs px-4 py-2 rounded-lg font-semibold transition-all"
+                            style={{
+                              backgroundColor: 'rgba(60,160,80,0.1)',
+                              color: '#3ca050',
+                              border: '1px solid rgba(60,160,80,0.3)',
+                              fontFamily: 'var(--font-ui)',
+                            }}
+                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(60,160,80,0.2)'}
+                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(60,160,80,0.1)'}>
+                            ✓ Marcar como reembolsado
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
               </div>
             )}
           </div>

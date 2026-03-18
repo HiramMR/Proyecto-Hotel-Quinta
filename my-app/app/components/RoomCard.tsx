@@ -29,11 +29,12 @@ interface RoomData {
 
 interface RoomCardProps {
   room: RoomData;
-  onReserve: (room: RoomData) => void;  // ← nuevo: abre el modal
+  onReserve: (room: RoomData) => void;
   amenitiesList?: AmenityItem[];
+  unavailable?: boolean;
 }
 
-export default function RoomCard({ room, onReserve, amenitiesList }: RoomCardProps) {
+export default function RoomCard({ room, onReserve, amenitiesList, unavailable = false }: RoomCardProps) {
   const { title, description, price, images, capacity, popular, amenities } = room;
 
   return (
@@ -103,10 +104,11 @@ export default function RoomCard({ room, onReserve, amenitiesList }: RoomCardPro
 
           {/* Botón Reservar → abre el modal */}
           <button
-            onClick={() => onReserve(room)}
+            onClick={() => !unavailable && onReserve(room)}
+            disabled={unavailable}
             className="btn-copper transition-transform duration-200 hover:scale-105 active:scale-95"
-            style={{ fontSize: '0.68rem', padding: '0.6rem 1.4rem' }}>
-            Reservar
+            style={{ fontSize: '0.68rem', padding: '0.6rem 1.4rem', opacity: unavailable ? 0.4 : 1, cursor: unavailable ? 'default' : 'pointer' }}>
+            {unavailable ? 'No disponible' : 'Reservar'}
           </button>
         </div>
       </div>

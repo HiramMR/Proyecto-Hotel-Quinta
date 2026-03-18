@@ -22,6 +22,7 @@ interface Reservation {
   metodo_pago: string
   estado: string
   created_at: string
+  payment_intent_id: string | null
   rooms: {
     title: string
     images: string[]
@@ -42,13 +43,15 @@ const metodoPagoLabel: Record<string, string> = {
 
 const estadoColor: Record<string, string> = {
   confirmada: 'rgba(200,129,58,0.12)',
-  cancelada: 'rgba(200,60,60,0.08)',
+  pagada:     'rgba(60,160,80,0.1)',
+  cancelada:  'rgba(200,60,60,0.08)',
   completada: 'rgba(60,160,80,0.1)',
 }
 
 const estadoTextColor: Record<string, string> = {
   confirmada: 'var(--copper)',
-  cancelada: '#c03c3c',
+  pagada:     '#3ca050',
+  cancelada:  '#c03c3c',
   completada: '#3ca050',
 }
 
@@ -66,6 +69,8 @@ export default function AccountPage() {
   // ── Estado para el modal de confirmación de cancelación ──
   const [cancelingId, setCancelingId] = useState<number | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [canceling, setCanceling] = useState(false)
+  const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string } | null>(null)
 
   // Redirigir si no hay sesión
   useEffect(() => {
@@ -104,17 +109,47 @@ export default function AccountPage() {
     return horas > 48
   }
 
-  // ── Cambia el estado de la reservación a "cancelada" en Supabase ──
+  // ── Cancela la reservación y gestiona el reembolso ──
   const handleCancel = async () => {
     if (!cancelingId) return
-    await supabase
-      .from('reservations')
-      .update({ estado: 'cancelada' })
-      .eq('id', cancelingId)
-    // Actualiza el estado local sin recargar la página
-    setReservations(prev =>
-      prev.map(r => r.id === cancelingId ? { ...r, estado: 'cancelada' } : r)
-    )
+    setCanceling(true)
+
+    try {
+      const res = await fetch('/api/cancel-reservation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reservationId: cancelingId }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setCancelResult({ success: false, message: data.error ?? 'Error al cancelar' })
+        setCanceling(false)
+        return
+      }
+
+      // Actualizar estado local
+      setReservations(prev =>
+        prev.map(r => r.id === cancelingId ? { ...r, estado: 'cancelada' } : r)
+      )
+
+      // Mensaje según método de pago
+      if (data.refunded) {
+        setCancelResult({
+          success: true,
+          message: 'Reservación cancelada. El reembolso se procesará en 5-10 días hábiles en tu tarjeta.',
+        })
+      } else {
+        setCancelResult({
+          success: true,
+          message: 'Reservación cancelada. Un representante del hotel se pondrá en contacto contigo para gestionar el reembolso.',
+        })
+      }
+    } catch {
+      setCancelResult({ success: false, message: 'Error de conexión. Intenta de nuevo.' })
+    }
+
+    setCanceling(false)
     setConfirmOpen(false)
     setCancelingId(null)
   }
@@ -285,8 +320,8 @@ export default function AccountPage() {
                           </span>
                         </div>
 
-                        {/* Botón cancelar — solo si la reservación está confirmada */}
-                        {res.estado === 'confirmada' && (
+                        {/* Botón cancelar — solo si la reservación está confirmada o pagada */}
+                        {(res.estado === 'confirmada' || res.estado === 'pagada') && (
                           <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--stone)' }}>
                             {canCancel(res.fecha_llegada) ? (
                               <button
@@ -369,18 +404,35 @@ export default function AccountPage() {
               style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
               ¿Cancelar reservación?
             </h3>
-            <p className="text-sm mb-6 leading-relaxed"
+            <p className="text-sm mb-4 leading-relaxed"
               style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
               Esta acción no se puede deshacer. La reservación quedará marcada como cancelada en tu historial.
             </p>
+            {/* Info de reembolso según método de pago */}
+            {(() => {
+              const res = reservations.find(r => r.id === cancelingId)
+              if (!res) return null
+              return (
+                <div className="p-3 rounded-lg mb-5 text-xs leading-relaxed"
+                  style={{ backgroundColor: 'rgba(200,129,58,0.07)', border: '1px solid rgba(200,129,58,0.2)', color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                  {res.metodo_pago === 'card'
+                    ? '💳 El reembolso se procesará automáticamente en tu tarjeta en 5-10 días hábiles.'
+                    : res.metodo_pago === 'transfer'
+                    ? '🏦 Un representante del hotel te contactará para gestionar el reembolso por transferencia.'
+                    : '💵 Si ya realizaste algún pago en recepción, el hotel te lo devolverá directamente.'
+                  }
+                </div>
+              )
+            })()}
             <div className="flex gap-3">
-              <button onClick={handleCancel}
+              <button onClick={handleCancel} disabled={canceling}
                 className="btn-copper flex-1 text-center"
-                style={{ backgroundColor: '#c03c3c', boxShadow: 'none' }}>
-                Sí, cancelar
+                style={{ backgroundColor: '#c03c3c', boxShadow: 'none', opacity: canceling ? 0.7 : 1 }}>
+                {canceling ? 'Cancelando...' : 'Sí, cancelar'}
               </button>
               <button
                 onClick={() => { setConfirmOpen(false); setCancelingId(null) }}
+                disabled={canceling}
                 className="flex-1 py-3 rounded-lg text-sm font-semibold transition-colors"
                 style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'}
@@ -388,6 +440,34 @@ export default function AccountPage() {
                 No, mantener
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MENSAJE DE RESULTADO DE CANCELACIÓN ── */}
+      {cancelResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(44,36,32,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm p-8 rounded-2xl text-center"
+            style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', boxShadow: 'var(--shadow-lg)' }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: cancelResult.success ? 'rgba(60,160,80,0.1)' : 'rgba(200,60,60,0.08)' }}>
+              {cancelResult.success
+                ? <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="#3ca050" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="#c03c3c" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              }
+            </div>
+            <h3 className="font-display text-lg mb-3"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+              {cancelResult.success ? 'Reservación cancelada' : 'Error'}
+            </h3>
+            <p className="text-sm mb-6 leading-relaxed"
+              style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+              {cancelResult.message}
+            </p>
+            <button onClick={() => setCancelResult(null)} className="btn-copper w-full text-center">
+              Entendido
+            </button>
           </div>
         </div>
       )}

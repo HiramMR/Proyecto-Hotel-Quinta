@@ -87,7 +87,7 @@ function SuccessStep({ room, llegada, salida, nights, total, metodoPago, loggedU
   }
 
   return (
-    <div className="relative overflow-hidden p-10 text-center">
+    <div className="relative p-10 pt-14 text-center">
       <style>{`
         @keyframes checkDraw {
           from { stroke-dashoffset: 60; opacity: 0; }
@@ -151,7 +151,6 @@ function SuccessStep({ room, llegada, salida, nights, total, metodoPago, loggedU
         con todos los detalles de tu estancia en {room.title}.
       </p>
 
-      {/* Resumen completo de la reservación */}
       <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left', padding: '1.25rem', borderRadius: '12px', backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)', minWidth: '280px', marginBottom: '2rem', animation: 'successSlideUp 0.6s 1.45s cubic-bezier(0.22,1,0.36,1) both' }}>
         <p style={{ fontFamily: 'var(--font-ui)', color: 'var(--charcoal)', fontSize: '0.9rem', fontWeight: 700 }}>{room.title}</p>
         <div style={{ height: '1px', backgroundColor: 'var(--stone)', margin: '0.25rem 0' }} />
@@ -178,9 +177,7 @@ function SuccessStep({ room, llegada, salida, nights, total, metodoPago, loggedU
         </div>
       </div>
 
-      {/* Botones */}
       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', animation: 'successSlideUp 0.6s 1.6s cubic-bezier(0.22,1,0.36,1) both' }}>
-        {/* Botón principal: ir a mis reservaciones */}
         <a href="/account?tab=reservations" className="btn-copper">
           Ver mis reservaciones
         </a>
@@ -253,21 +250,20 @@ function StripePaymentForm({ clientSecret, reservationId, onSuccess, onError }: 
   onSuccess: () => void;
   onError: (msg: string) => void;
 }) {
-  const stripe  = useStripe();
+  const stripe   = useStripe();
   const elements = useElements();
   const [paying, setPaying] = useState(false);
 
-  const handlePay = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ✅ handlePay es propio de este componente — no usa handleConfirm del padre
+  const handlePay = async () => {
     if (!stripe || !elements) return;
 
     setPaying(true);
 
-    // Confirmar el pago con Stripe
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: { return_url: window.location.href },
-      redirect: 'if_required', // No redirigir si no es necesario (tarjeta normal)
+      redirect: 'if_required',
     });
 
     if (error) {
@@ -277,7 +273,6 @@ function StripePaymentForm({ clientSecret, reservationId, onSuccess, onError }: 
     }
 
     if (paymentIntent?.status === 'succeeded') {
-      // Marcar la reservación como pagada en Supabase via API Route
       await fetch('/api/confirm-reservation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -290,13 +285,13 @@ function StripePaymentForm({ clientSecret, reservationId, onSuccess, onError }: 
   };
 
   return (
-    <form onSubmit={handlePay}>
-      {/* PaymentElement: formulario seguro de Stripe que muestra
-          los campos de tarjeta con el estilo configurado en options */}
+    // ✅ Sin <form> — usamos div para evitar form anidado
+    <div>
       <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
         <PaymentElement />
       </div>
-      <button type="submit" className="btn-copper w-full text-center"
+      {/* ✅ onClick={handlePay} — llama a su propio handler */}
+      <button type="button" onClick={handlePay} className="btn-copper w-full text-center"
         disabled={!stripe || paying}
         style={{ opacity: !stripe || paying ? 0.7 : 1 }}>
         {paying ? 'Procesando pago...' : 'Pagar ahora'}
@@ -304,7 +299,7 @@ function StripePaymentForm({ clientSecret, reservationId, onSuccess, onError }: 
       <p className="text-xs text-center mt-3" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
         Pago seguro procesado por Stripe 🔒
       </p>
-    </form>
+    </div>
   );
 }
 
@@ -313,7 +308,6 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   const [step, setStep] = useState<'detail' | 'booking' | 'success'>('detail');
   const [visible, setVisible] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<'card' | 'transfer' | 'cash' | null>(null);
-  const [cardData, setCardData] = useState({ numero: '', nombre: '', expiry: '', cvv: '' });
   const [savingError, setSavingError] = useState('');
   const [saving, setSaving] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
@@ -324,20 +318,17 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   const [showLlegada, setShowLlegada] = useState(false);
   const [showSalida, setShowSalida]   = useState(false);
 
-  // Refs para hacer scroll automático al abrir cada picker
   const llegadaRef = useRef<HTMLDivElement>(null);
   const salidaRef  = useRef<HTMLDivElement>(null);
 
-  // ── Rangos bloqueados para esta habitación ──
   const [blockedRanges, setBlockedRanges] = useState<{ from: string; to: string }[]>([]);
 
-  // Cargar fechas ocupadas de esta habitación desde Supabase
   useEffect(() => {
     supabase
       .from('reservations')
       .select('fecha_llegada, fecha_salida')
       .eq('room_id', room.id)
-      .eq('estado', 'confirmada')
+      .in('estado', ['confirmada', 'pagada'])
       .then(({ data }) => {
         setBlockedRanges(
           (data ?? []).map(r => ({ from: r.fecha_llegada, to: r.fecha_salida }))
@@ -346,10 +337,9 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   }, [room.id]);
 
   const nights = calcNights(llegada, salida);
-  const total = room.price * nights;
-  const stars = room.stars ?? 4;
+  const total  = room.price * nights;
+  const stars  = room.stars ?? 4;
 
-  // Datos del usuario logueado para mostrar en el modal y en SuccessStep
   const loggedUser = {
     nombre: profile?.nombre
       ? `${profile.nombre} ${profile.apellido ?? ''}`.trim()
@@ -385,30 +375,28 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     };
   }, [handleClose, lightboxImg]);
 
+  // ✅ cardData declarado UNA sola vez
   const [cardData, setCardData] = useState({ numero: '', nombre: '', expiry: '', cvv: '' });
 
-  // ── Stripe: clientSecret para el PaymentElement ──
-  const [clientSecret, setClientSecret] = useState('');
+  const [clientSecret, setClientSecret]   = useState('');
   const [reservationId, setReservationId] = useState<number | null>(null);
 
   // ── Confirmar reservación para transferencia y efectivo ──
-  const handleConfirm = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirm = async () => {
     if (!selectedPayment || !user || selectedPayment === 'card') return;
 
     setSaving(true);
     setSavingError('');
 
     const { error } = await supabase.from('reservations').insert({
-      user_id: user.id,
-      room_id: room.id,
+      user_id:       user.id,
+      room_id:       room.id,
       fecha_llegada: llegada,
-      fecha_salida: salida,
-      noches: nights,
-      total: total,
-      metodo_pago: selectedPayment,
-      estado: 'confirmada',
-      estado_pago: 'pendiente',
+      fecha_salida:  salida,
+      noches:        nights,
+      total:         total,
+      metodo_pago:   selectedPayment,
+      estado:        'confirmada',
     });
 
     if (error) {
@@ -427,44 +415,58 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     setSaving(true);
     setSavingError('');
 
-    // 1. Crear la reservación con estado_pago pendiente
-    const { data: resData, error: resError } = await supabase
+    // INSERT sin .select() para evitar que la policy SELECT (get_user_role) bloquee la operación
+    const { error: resError } = await supabase
       .from('reservations')
       .insert({
-        user_id: user.id,
-        room_id: room.id,
+        user_id:       user.id,
+        room_id:       room.id,
         fecha_llegada: llegada,
-        fecha_salida: salida,
-        noches: nights,
-        total: total,
-        metodo_pago: 'card',
-        estado: 'confirmada',
-        estado_pago: 'pendiente',
-      })
-      .select()
+        fecha_salida:  salida,
+        noches:        nights,
+        total:         total,
+        metodo_pago:   'card',
+        estado:        'confirmada',
+      });
+
+    if (resError) {
+      setSavingError('No se pudo crear la reservación. Intenta de nuevo.');
+      setSaving(false);
+      return;
+    }
+
+    // Obtener el id de la reservación recién creada en consulta separada
+    const { data: resData, error: fetchError } = await supabase
+      .from('reservations')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('room_id', room.id)
+      .eq('fecha_llegada', llegada)
+      .eq('fecha_salida', salida)
+      .order('id', { ascending: false })
+      .limit(1)
       .single();
 
-    if (resError || !resData) {
-      setSavingError('No se pudo crear la reservación. Intenta de nuevo.');
+    if (fetchError || !resData) {
+      setSavingError('No se pudo obtener la reservación. Intenta de nuevo.');
       setSaving(false);
       return;
     }
 
     setReservationId(resData.id);
 
-    // 2. Crear el PaymentIntent en Stripe via API Route
     const res = await fetch('/api/create-payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount: total,
+        amount:   total,
         currency: 'mxn',
         metadata: {
           reservation_id: String(resData.id),
-          user_id: user.id,
-          room_id: String(room.id),
-        }
-      })
+          user_id:        user.id,
+          room_id:        String(room.id),
+        },
+      }),
     });
 
     const { clientSecret: cs, error: stripeError } = await res.json();
@@ -484,7 +486,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
       className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-8"
       style={{
         backgroundColor: visible ? 'rgba(44,36,32,0.75)' : 'rgba(44,36,32,0)',
-        backdropFilter: visible ? 'blur(6px)' : 'blur(0px)',
+        backdropFilter:  visible ? 'blur(6px)' : 'blur(0px)',
         transition: 'background-color 0.38s ease, backdrop-filter 0.38s ease',
       }}
       onClick={e => { if (e.target === e.currentTarget) handleClose(); }}
@@ -495,7 +497,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
           borderRadius: '4px 28px 4px 28px',
           boxShadow: '0 32px 80px rgba(44,36,32,0.45)',
           overflow: 'hidden',
-          opacity: visible ? 1 : 0,
+          opacity:   visible ? 1 : 0,
           transform: visible ? 'scale(1) translateY(0)' : 'scale(0.88) translateY(40px)',
           transition: 'opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1)',
         }}>
@@ -512,7 +514,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
           </svg>
         </button>
 
-        <div style={{ maxHeight: '92vh', overflowY: 'auto' }}>
+        <div style={{ maxHeight: '92vh', overflowY: 'auto' }} ref={el => { if (el) el.scrollTop = 0; }}>
 
           {/* ══════════════════════════════════════════
               PASO 1: DETALLE
@@ -593,7 +595,6 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                     Selecciona tus fechas
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    {/* DatePicker de llegada — recibe salida como otherDate */}
                     <div ref={llegadaRef}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-1.5"
                         style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Llegada</p>
@@ -613,7 +614,6 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                         inline
                       />
                     </div>
-                    {/* DatePicker de salida — recibe llegada como otherDate */}
                     <div ref={salidaRef}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-1.5"
                         style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Salida</p>
@@ -634,7 +634,6 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                       />
                     </div>
                   </div>
-                  {/* Resumen de noches */}
                   {llegada && salida && (
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex-1 h-px" style={{ backgroundColor: 'var(--stone)' }} />
@@ -716,7 +715,8 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
               {/* ── CON SESIÓN ── */}
               {user && (
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                  <form className="lg:col-span-3" onSubmit={handleConfirm}>
+                  {/* ✅ <div> en lugar de <form> para evitar forms anidados */}
+                  <div className="lg:col-span-3">
                     <p className="text-xs uppercase tracking-[0.25em] mb-2" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>Paso 2 de 2</p>
                     <h2 className="font-display mb-1" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 400, color: 'var(--charcoal)' }}>
                       Método de <em>pago</em>
@@ -794,11 +794,11 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                       <div className="p-4 rounded-lg mb-4 space-y-2" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
                         <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Datos bancarios</p>
                         {[
-                          { l: 'Banco', v: 'BBVA México' },
-                          { l: 'Cuenta', v: '0123 4567 89' },
-                          { l: 'CLABE', v: '012 345 678 901 234 5' },
+                          { l: 'Banco',        v: 'BBVA México' },
+                          { l: 'Cuenta',       v: '0123 4567 89' },
+                          { l: 'CLABE',        v: '012 345 678 901 234 5' },
                           { l: 'Beneficiario', v: 'Hotel Quinta Dalam S.A.' },
-                          { l: 'Referencia', v: `RES-${room.id}-${Date.now().toString().slice(-6)}` },
+                          { l: 'Referencia',   v: `RES-${room.id}-${Date.now().toString().slice(-6)}` },
                         ].map(item => (
                           <div key={item.l} className="flex justify-between text-xs" style={{ fontFamily: 'var(--font-ui)' }}>
                             <span style={{ color: 'var(--text-muted)' }}>{item.l}</span>
@@ -825,9 +825,10 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                       </div>
                     )}
 
-                    {/* Botón confirmar — solo para transferencia y efectivo */}
+                    {/* ✅ Botón confirmar — onClick en lugar de type="submit" */}
                     {selectedPayment !== 'card' && (
-                      <button type="submit" className="btn-copper w-full text-center mt-2"
+                      <button type="button" onClick={handleConfirm}
+                        className="btn-copper w-full text-center mt-2"
                         style={{ opacity: selectedPayment && !saving ? 1 : 0.5, transition: 'opacity 0.2s' }}
                         disabled={!selectedPayment || saving}>
                         {saving ? 'Guardando reservación...' : 'Confirmar reservación'}
@@ -837,7 +838,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                     <p className="text-xs text-center mt-3" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
                       Cancelación gratuita hasta 48 horas antes del check-in.
                     </p>
-                  </form>
+                  </div>
 
                   {ReservationSummary({ room, llegada, salida, nights, total, stars })}
                 </div>
