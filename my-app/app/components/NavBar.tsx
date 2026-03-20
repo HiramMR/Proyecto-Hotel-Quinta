@@ -18,7 +18,7 @@ import { useAuth } from '../../lib/auth-context';
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, profile, isAdmin, loading, signOut } = useAuth();
+  const { user, profile, isAdmin, loading, profileLoaded, signOut } = useAuth();
   const navRef = useRef<HTMLElement>(null);
   const [capsuleStyle, setCapsuleStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const [isScrolled, setIsScrolled] = useState(false);
@@ -96,13 +96,18 @@ export default function NavBar() {
     return () => window.removeEventListener('resize', updateCapsule);
   }, [pathname]);
 
+
   // ── Nombre para mostrar en el menú ──
-  const displayName = profile?.nombre
+  const displayName = !profileLoaded
+    ? ''
+    : profile?.nombre
     ? `${profile.nombre} ${profile.apellido ?? ''}`.trim()
     : user?.email ?? '';
 
   // ── Inicial del avatar ──
-  const initial = profile?.nombre
+  const initial = !profileLoaded
+    ? user?.email?.charAt(0).toUpperCase() ?? '?'
+    : profile?.nombre
     ? profile.nombre.charAt(0).toUpperCase()
     : user?.email?.charAt(0).toUpperCase() ?? '?';
 

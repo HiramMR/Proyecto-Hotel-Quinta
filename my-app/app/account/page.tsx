@@ -55,6 +55,212 @@ const estadoTextColor: Record<string, string> = {
   completada: '#3ca050',
 }
 
+// ── Formulario de edición de perfil ──
+function ProfileForm({ user, profile, onSaved }: {
+  user: any;
+  profile: any;
+  onSaved: (updated: any) => void;
+}) {
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [form, setForm] = useState({
+    nombre:   profile?.nombre   ?? '',
+    apellido: profile?.apellido ?? '',
+    telefono: profile?.telefono ?? '',
+  })
+
+  useEffect(() => {
+    setForm({
+      nombre:   profile?.nombre   ?? '',
+      apellido: profile?.apellido ?? '',
+      telefono: profile?.telefono ?? '',
+    })
+    if (profile?.last_profile_update) {
+      setLastUpdate(new Date(profile.last_profile_update))
+    }
+  }, [profile])
+
+  // Verifica si han pasado al menos 7 días desde el último cambio
+  const canEdit = () => {
+    if (!lastUpdate) return true
+    const diff = Date.now() - lastUpdate.getTime()
+    const days = diff / (1000 * 60 * 60 * 24)
+    return days >= 7
+  }
+
+  const daysUntilNextEdit = () => {
+    if (!lastUpdate) return 0
+    const diff = Date.now() - lastUpdate.getTime()
+    const days = diff / (1000 * 60 * 60 * 24)
+    return Math.ceil(7 - days)
+  }
+
+  const handleSave = async () => {
+    if (!form.nombre.trim()) {
+      setSaveError('El nombre es obligatorio.')
+      return
+    }
+    if (!canEdit()) {
+      setSaveError(`Debes esperar ${daysUntilNextEdit()} día(s) más para poder actualizar tu perfil.`)
+      return
+    }
+    setSaving(true)
+    setSaveError('')
+    setSaveSuccess(false)
+
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        nombre:               form.nombre.trim(),
+        apellido:             form.apellido.trim() || null,
+        telefono:             form.telefono.trim() || null,
+        last_profile_update:  now,
+      })
+      .eq('id', user.id)
+
+    if (error) {
+      setSaveError('No se pudo guardar. Intenta de nuevo.')
+      setSaving(false)
+      return
+    }
+
+    setLastUpdate(new Date(now))
+    setSaving(false)
+    setSaveSuccess(true)
+    setEditing(false)
+    onSaved(form)
+    setTimeout(() => setSaveSuccess(false), 3000)
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    borderRadius: '8px',
+    border: '1px solid var(--stone)',
+    backgroundColor: 'var(--cream)',
+    color: 'var(--charcoal)',
+    fontFamily: 'var(--font-ui)',
+    fontSize: '0.875rem',
+    outline: 'none',
+  }
+
+  const editAllowed = canEdit()
+
+  return (
+    <div className="space-y-4 mb-8">
+      {/* Correo — solo lectura siempre */}
+      <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+        <p className="text-xs uppercase tracking-widest font-semibold mb-1"
+          style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Correo</p>
+        <p className="text-sm font-medium" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
+          {user.email}
+        </p>
+        <p className="text-xs mt-1 italic" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
+          El correo no se puede cambiar
+        </p>
+      </div>
+
+      {/* Campos editables */}
+      {editing ? (
+        <>
+          {[
+            { label: 'Nombre',    key: 'nombre',   placeholder: 'Tu nombre' },
+            { label: 'Apellido',  key: 'apellido', placeholder: 'Tu apellido' },
+            { label: 'Teléfono', key: 'telefono', placeholder: '+52 434 000 0000' },
+          ].map(field => (
+            <div key={field.key}>
+              <label className="block text-xs uppercase tracking-widest font-semibold mb-2"
+                style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                {field.label}
+              </label>
+              <input
+                type="text"
+                value={(form as any)[field.key]}
+                onChange={e => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder={field.placeholder}
+                style={inputStyle}
+                onFocus={e => (e.target as HTMLElement).style.borderColor = 'var(--copper)'}
+                onBlur={e => (e.target as HTMLElement).style.borderColor = 'var(--stone)'}
+              />
+            </div>
+          ))}
+
+          {saveError && (
+            <p className="text-xs" style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>
+              {saveError}
+            </p>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={handleSave} disabled={saving}
+              className="btn-copper flex-1 text-center"
+              style={{ opacity: saving ? 0.7 : 1 }}>
+              {saving ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+            <button onClick={() => { setEditing(false); setSaveError('') }}
+              className="flex-1 py-3 rounded-lg text-sm font-semibold transition-colors"
+              style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}>
+              Cancelar
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {[
+            { label: 'Nombre',    value: profile?.nombre   ?? '—' },
+            { label: 'Apellido',  value: profile?.apellido ?? '—' },
+            { label: 'Teléfono', value: profile?.telefono ?? '—' },
+          ].map(item => (
+            <div key={item.label} className="p-4 rounded-xl"
+              style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+              <p className="text-xs uppercase tracking-widest font-semibold mb-1"
+                style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                {item.label}
+              </p>
+              <p className="text-sm font-medium"
+                style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+
+          {saveSuccess && (
+            <p className="text-xs font-semibold" style={{ color: '#3ca050', fontFamily: 'var(--font-ui)' }}>
+              ✓ Cambios guardados correctamente
+            </p>
+          )}
+
+          {/* Botón editar — deshabilitado si no han pasado 7 días */}
+          {editAllowed ? (
+            <button onClick={() => setEditing(true)} className="btn-copper w-full text-center">
+              Editar perfil
+            </button>
+          ) : (
+            <div className="p-4 rounded-xl text-center"
+              style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                Próxima edición disponible en
+              </p>
+              <p className="text-lg font-semibold" style={{ color: 'var(--copper)', fontFamily: 'var(--font-display)' }}>
+                {daysUntilNextEdit()} {daysUntilNextEdit() === 1 ? 'día' : 'días'}
+              </p>
+              <p className="text-xs mt-1 italic" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
+                Solo puedes actualizar tu perfil una vez por semana
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function AccountPage() {
   const { user, profile, loading, signOut } = useAuth()
   const router = useRouter()
@@ -358,30 +564,14 @@ export default function AccountPage() {
               Mi <em>perfil</em>
             </h2>
 
-            <div className="space-y-4 mb-8">
-              {[
-                { label: 'Nombre',    value: profile?.nombre   ?? '—' },
-                { label: 'Apellido',  value: profile?.apellido ?? '—' },
-                { label: 'Correo',    value: user.email        ?? '—' },
-                { label: 'Teléfono', value: profile?.telefono ?? '—' },
-              ].map(item => (
-                <div key={item.label} className="p-4 rounded-xl"
-                  style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
-                  <p className="text-xs uppercase tracking-widest font-semibold mb-1"
-                    style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
-                    {item.label}
-                  </p>
-                  <p className="text-sm font-medium"
-                    style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>
-                    {item.value}
-                  </p>
-                </div>
-              ))}
-            </div>
+            <ProfileForm user={user} profile={profile} onSaved={(updated) => {
+              // Actualizar el profile en el contexto local
+              window.location.reload()
+            }} />
 
             {/* Cerrar sesión */}
             <button onClick={async () => { await signOut(); router.push('/'); }}
-              className="flex items-center gap-2 text-sm transition-colors"
+              className="flex items-center gap-2 text-sm transition-colors mt-8"
               style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
