@@ -40,6 +40,7 @@ function Reveal({ children, delay = 0, direction = 'up', className = '' }: {
 }
 
 export default function AboutPage() {
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -76,22 +77,6 @@ export default function AboutPage() {
       texto: 'Llevamos a nuestros hijos a conocer Quinta Dalam y fue una lección de historia, arte y tradición michoacana. Cada habitación es un mundo distinto. ¡Volvemos pronto!',
       inicial: 'F',
     },
-  ];
-
-  const municipios = [
-    { nombre: 'Tzintzunzan',   num: '101' },
-    { nombre: 'Paracho',       num: '102' },
-    { nombre: 'Yunuen',        num: '103' },
-    { nombre: 'Pátzcuaro',     num: '104' },
-    { nombre: 'Coeneo',        num: '105' },
-    { nombre: 'Janitzio',      num: '106' },
-    { nombre: 'Suite Quencio', num: '201', suite: true },
-    { nombre: 'Morelia',       num: '202' },
-    { nombre: 'Tacámbaro',     num: '203' },
-    { nombre: 'Uruapan',       num: '204' },
-    { nombre: 'Tlalpujahua',   num: '205' },
-    { nombre: 'Cuitzeo',       num: '206' },
-    { nombre: 'Cuanajo',       num: '207' },
   ];
 
   return (
@@ -171,58 +156,81 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── MUNICIPIOS ── */}
-      <section className="py-20" style={{ backgroundColor: 'var(--cream-dark)' }}>
-        <div className="container mx-auto px-6 max-w-4xl">
+      {/* ── GALERÍA DE FOTOS ── */}
+      <section className="py-16" style={{ backgroundColor: 'var(--charcoal)' }}>
+        <div className="container mx-auto px-6 max-w-5xl">
           <Reveal direction="up">
             <p className="text-xs uppercase tracking-[0.25em] mb-3 text-center" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
-              Michoacán en cada habitación
+              El lugar
             </p>
-            <h2 className="font-display text-center mb-4" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,3vw,2.5rem)', fontWeight: 400, color: 'var(--charcoal)' }}>
-              Un recorrido por el <em>estado</em>
+            <h2 className="font-display text-center mb-10" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,3vw,2.5rem)', fontWeight: 400, color: 'var(--cream)' }}>
+              Descubre <em>Quinta Dalam</em>
             </h2>
-            <p className="text-sm text-center mb-12 max-w-2xl mx-auto" style={{ fontFamily: 'var(--font-body)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              Cada habitación de Quinta Dalam lleva el nombre y el alma de un municipio michoacano. Hospedarte aquí es hacer un viaje cultural sin salir del hotel.
-            </p>
           </Reveal>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {municipios.map((m, i) => (
-              <Reveal key={m.nombre} direction="up" delay={i * 50}>
-                <div className="p-4 text-center transition-all duration-300 cursor-default"
-                  style={{
-                    borderRadius: '4px 16px 4px 16px',
-                    border: `1px solid ${m.suite ? 'var(--copper)' : 'var(--stone)'}`,
-                    backgroundColor: m.suite ? 'var(--copper)' : 'var(--cream)',
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = m.suite ? 'var(--copper)' : 'rgba(200,129,58,0.08)';
-                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--copper)';
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = m.suite ? 'var(--copper)' : 'var(--cream)';
-                    (e.currentTarget as HTMLElement).style.borderColor = m.suite ? 'var(--copper)' : 'var(--stone)';
-                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                  }}>
-                  <p className="text-xs font-semibold mb-1"
-                    style={{ fontFamily: 'var(--font-ui)', color: m.suite ? 'rgba(255,255,255,0.7)' : 'var(--text-light)' }}>
-                    {m.num}
-                  </p>
-                  <p className="font-display text-base font-semibold"
-                    style={{ fontFamily: 'var(--font-display)', color: m.suite ? '#fff' : 'var(--charcoal)' }}>
-                    {m.nombre}
-                  </p>
-                  {m.suite && (
-                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.8)', fontFamily: 'var(--font-ui)' }}>
-                      Suite principal
-                    </p>
-                  )}
+
+          {/* Grid de fotos */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              '/img/carrusel/outside.jpg',
+              '/img/carrusel/lobby.jpg',
+              '/img/carrusel/lago.jpg',
+              '/img/hallway.jpg',
+              '/img/puestadesol.jpg',
+              '/img/carrusel/rooftop.jpg',
+              '/img/carrusel/lobby2.jpg',
+              '/img/lago2.jpg',
+              '/img/carrusel/cups.jpg',
+            ].map((src, i) => (
+              <Reveal key={i} direction="none" delay={i * 60}>
+                <div className="relative overflow-hidden cursor-pointer group"
+                  style={{ borderRadius: '4px 16px 4px 16px', aspectRatio: '4/3' }}
+                  onClick={() => setLightbox(src)}>
+                  <img
+                    src={src}
+                    alt="Quinta Dalam"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  {/* Overlay sutil al hover sin texto */}
+                  <div className="absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                    style={{ background: 'rgba(44,36,32,0.15)' }} />
+                  {/* Ícono de zoom */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: 'rgba(245,240,232,0.9)' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5" style={{ color: 'var(--charcoal)' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </Reveal>
             ))}
           </div>
         </div>
       </section>
+
+      {/* ── LIGHTBOX ── */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+          style={{ backgroundColor: 'rgba(20,14,12,0.92)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setLightbox(null)}>
+          <div className="relative max-w-4xl w-full" onClick={e => e.stopPropagation()}>
+            <img src={lightbox} alt="Quinta Dalam"
+              className="w-full object-contain rounded-2xl"
+              style={{ maxHeight: '85vh', boxShadow: '0 32px 80px rgba(0,0,0,0.7)' }} />
+          </div>
+          <button onClick={() => setLightbox(null)}
+            className="absolute top-5 right-5 w-10 h-10 rounded-full flex items-center justify-center transition-all"
+            style={{ backgroundColor: 'rgba(245,240,232,0.15)', color: '#fff' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(245,240,232,0.28)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(245,240,232,0.15)'}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* ── NUESTRA TRAYECTORIA ── */}
       <section className="py-20" style={{ backgroundColor: 'var(--wood-dark)' }}>

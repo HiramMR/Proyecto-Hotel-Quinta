@@ -148,10 +148,10 @@ export default function Footer() {
 
           {/* ── COLUMNA 2: Navegación rápida ── */}
           <FadeCol delay={100}>
-            <h4 className="text-xs uppercase tracking-[0.25em] font-semibold mb-6"
+            <p className="text-xs uppercase tracking-[0.25em] font-semibold mb-6"
               style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
               Navegación
-            </h4>
+            </p>
             <ul className="space-y-3">
               {navLinks.map(link => (
                 <li key={link.href}>
@@ -172,10 +172,10 @@ export default function Footer() {
 
           {/* ── COLUMNA 3: Contacto + Check-in ── */}
           <FadeCol delay={200}>
-            <h4 className="text-xs uppercase tracking-[0.25em] font-semibold mb-6"
+            <p className="text-xs uppercase tracking-[0.25em] font-semibold mb-6"
               style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
               Contacto
-            </h4>
+            </p>
             <div className="space-y-4">
               {[
                 {
@@ -278,6 +278,24 @@ export default function Footer() {
                 {p.name}
               </a>
             ))}
+          </div>
+
+          {/* ── Logos de validación W3C ── */}
+          <div className="flex items-center gap-3">
+            <a href="https://validator.w3.org/" target="_blank" rel="noopener noreferrer"
+              title="Valid HTML 4.01">
+              <img src="/img/valid-html401.png" alt="Valid HTML 4.01"
+                style={{ height: '24px', width: 'auto', opacity: 0.8, transition: 'opacity 0.2s' }}
+                onMouseEnter={e => (e.currentTarget as HTMLImageElement).style.opacity = '1'}
+                onMouseLeave={e => (e.currentTarget as HTMLImageElement).style.opacity = '0.8'} />
+            </a>
+            <a href="https://jigsaw.w3.org/css-validator/" target="_blank" rel="noopener noreferrer"
+              title="Valid CSS">
+              <img src="/img/valid-css.png" alt="Valid CSS"
+                style={{ height: '24px', width: 'auto', opacity: 0.8, transition: 'opacity 0.2s' }}
+                onMouseEnter={e => (e.currentTarget as HTMLImageElement).style.opacity = '1'}
+                onMouseLeave={e => (e.currentTarget as HTMLImageElement).style.opacity = '0.8'} />
+            </a>
           </div>
         </div>
       </div>

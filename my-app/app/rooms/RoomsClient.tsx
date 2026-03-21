@@ -94,11 +94,28 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
   const [showSalida, setShowSalida]       = useState(false);
   const [llegada, setLlegada]             = useState(llegadaParam);
   const [salida, setSalida]               = useState(salidaParam);
-  const [selectedCapacity, setSelectedCapacity] = useState<number | null>(null);
+  const [selectedCapacity, setSelectedCapacity] = useState<number[]>([]);
   const [maxPrice, setMaxPrice]           = useState(10000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  // Estados temporales — lo que el usuario selecciona antes de aplicar
+  const [tempCapacity, setTempCapacity]   = useState<number[]>([]);
+  const [tempPrice, setTempPrice]         = useState(10000);
+  const [tempAmenities, setTempAmenities] = useState<string[]>([]);
   const [selectedRoom, setSelectedRoom]   = useState<RoomData | null>(null);
   const [unavailableIds, setUnavailableIds] = useState<number[]>([]);
+  const roomListRef = useRef<HTMLDivElement>(null);
+
+  // Scroll a la habitación específica al hacer click en el carousel
+  const scrollToRoom = (roomId: number) => {
+    const el = document.getElementById(`room-${roomId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Efecto de highlight breve
+      el.style.outline = '2px solid var(--copper)';
+      el.style.outlineOffset = '4px';
+      setTimeout(() => { el.style.outline = 'none'; }, 1500);
+    }
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setIsMounted(true), 200);
@@ -125,21 +142,64 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
   }, [llegadaParam, salidaParam]);
 
   const toggleAmenity = (a: string) =>
-    setSelectedAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
+    setTempAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
+
+  // ── Aplicar filtros de capacidad, precio y amenidades ──
+  const filteredRooms = allRooms.filter(room => {
+    if (selectedCapacity.length > 0 && !selectedCapacity.includes(room.capacity)) return false;
+    if (room.price > maxPrice) return false;
+    if (selectedAmenities.length > 0) {
+      const roomAmenities = room.amenities ?? [];
+      if (!selectedAmenities.every(a => roomAmenities.includes(a))) return false;
+    }
+    return true;
+  });
+
+  const activeFilters = !!(selectedCapacity.length > 0 || maxPrice < 10000 || selectedAmenities.length > 0);
 
   const roomSlides = allRooms.map(room => ({
     src: room.images[0] ?? '/img/banner.png',
     content: (
-      <div className="text-center">
+      <div className="text-center px-4" onClick={() => scrollToRoom(room.id)}
+        style={{ cursor: 'pointer', width: '100%' }}>
+        {/* Nombre */}
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,4vw,3rem)', fontWeight: 400, color: 'var(--cream)' }}>
           {room.title}
         </h3>
-        {room.popular && (
-          <span className="inline-block px-4 py-1 text-xs uppercase tracking-widest font-semibold mt-2"
-            style={{ backgroundColor: 'var(--copper)', color: '#fff', borderRadius: '2px 10px 2px 10px' }}>
-            Popular
-          </span>
+        {/* Precio */}
+        <p className="mt-1 mb-3" style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--copper)' }}>
+          ${room.price} <span style={{ fontSize: '0.75rem', color: 'rgba(245,240,232,0.7)', fontFamily: 'var(--font-ui)' }}>/ noche</span>
+        </p>
+        {/* Amenidades */}
+        {room.amenities && room.amenities.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 mb-3">
+            {room.amenities.slice(0, 4).map(name => {
+              const item = amenitiesList.find(a => a.name === name);
+              return item ? (
+                <span key={name} className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full"
+                  style={{ backgroundColor: 'rgba(245,240,232,0.15)', backdropFilter: 'blur(4px)', color: 'var(--cream)', border: '1px solid rgba(245,240,232,0.25)', fontFamily: 'var(--font-ui)' }}>
+                  {item.icon}{name}
+                </span>
+              ) : null;
+            })}
+          </div>
         )}
+        {/* Badges */}
+        <div className="flex items-center justify-center gap-2">
+          {room.popular && (
+            <span className="inline-block px-4 py-1 text-xs uppercase tracking-widest font-semibold"
+              style={{ backgroundColor: 'var(--copper)', color: '#fff', borderRadius: '2px 10px 2px 10px' }}>
+              Popular
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full"
+            style={{ backgroundColor: 'rgba(245,240,232,0.12)', backdropFilter: 'blur(4px)', color: 'rgba(245,240,232,0.8)', border: '1px solid rgba(245,240,232,0.2)', fontFamily: 'var(--font-ui)' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+            Ver habitación
+          </span>
+        </div>
       </div>
     )
   }));
@@ -217,9 +277,9 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
                       <label className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Capacidad</label>
                       <div className="flex gap-3">
                         {[2, 4, 6, 8].map(cap => (
-                          <button key={cap} onClick={() => setSelectedCapacity(selectedCapacity === cap ? null : cap)}
+                          <button key={cap} onClick={() => setTempCapacity(prev => prev.includes(cap) ? prev.filter(c => c !== cap) : [...prev, cap])}
                             className="flex items-center gap-1 text-xs font-medium transition-colors"
-                            style={{ color: selectedCapacity === cap ? 'var(--copper)' : 'var(--text-muted)' }}>
+                            style={{ color: tempCapacity.includes(cap) ? 'var(--copper)' : 'var(--text-muted)' }}>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" /></svg>
                             {cap}
                           </button>
@@ -228,21 +288,32 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
                     </div>
                     <div className="mb-5">
                       <label className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Precio máximo</label>
-                      <input type="range" min="0" max="10000" value={maxPrice} onChange={e => setMaxPrice(Number(e.target.value))} className="w-full h-1.5 rounded-lg cursor-pointer" style={{ accentColor: 'var(--copper)' }} />
-                      <p className="text-center text-xs mt-2 font-semibold" style={{ color: 'var(--copper)' }}>Hasta ${maxPrice}</p>
+                      <input type="range" min="0" max="10000" value={tempPrice} onChange={e => setTempPrice(Number(e.target.value))} className="w-full h-1.5 rounded-lg cursor-pointer" style={{ accentColor: 'var(--copper)' }} />
+                      <p className="text-center text-xs mt-2 font-semibold" style={{ color: 'var(--copper)' }}>Hasta ${tempPrice}</p>
                     </div>
-                    <div>
+                    <div className="mb-5">
                       <label className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Amenidades</label>
                       <div className="grid grid-cols-3 gap-2">
                         {amenitiesList.map(a => (
                           <button key={a.name} onClick={() => toggleAmenity(a.name)}
                             className="flex flex-col items-center gap-1.5 p-2 rounded-lg text-xs transition-all"
-                            style={{ color: selectedAmenities.includes(a.name) ? 'var(--copper)' : 'var(--text-muted)', backgroundColor: selectedAmenities.includes(a.name) ? 'rgba(200,129,58,0.08)' : 'transparent', border: `1px solid ${selectedAmenities.includes(a.name) ? 'rgba(200,129,58,0.3)' : 'var(--stone)'}` }}>
+                            style={{ color: tempAmenities.includes(a.name) ? 'var(--copper)' : 'var(--text-muted)', backgroundColor: tempAmenities.includes(a.name) ? 'rgba(200,129,58,0.08)' : 'transparent', border: `1px solid ${tempAmenities.includes(a.name) ? 'rgba(200,129,58,0.3)' : 'var(--stone)'}` }}>
                             {a.icon}<span>{a.name}</span>
                           </button>
                         ))}
                       </div>
                     </div>
+                    {/* Botón aplicar filtros */}
+                    <button
+                      className="btn-copper w-full text-center"
+                      onClick={() => {
+                        setSelectedCapacity(tempCapacity);
+                        setMaxPrice(tempPrice);
+                        setSelectedAmenities(tempAmenities);
+                        setShowFilters(false);
+                      }}>
+                      Aplicar filtros
+                    </button>
                   </div>
                 )}
               </div>
@@ -275,22 +346,65 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
                   : 'Disponibles para ti'
                 }
               </p>
-              <h2 className="font-display" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,3vw,2.8rem)', fontWeight: 400, color: 'var(--charcoal)' }}>
-                {llegadaParam && salidaParam
-                  ? <>Habitaciones <em>disponibles</em></>
-                  : <>Todas nuestras <em>habitaciones</em></>
-                }
-              </h2>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <h2 className="font-display" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,3vw,2.8rem)', fontWeight: 400, color: 'var(--charcoal)' }}>
+                  {llegadaParam && salidaParam
+                    ? <>Habitaciones <em>disponibles</em></>
+                    : <>Todas nuestras <em>habitaciones</em></>
+                  }
+                </h2>
+                {/* Botón limpiar filtros */}
+                {activeFilters && (
+                  <button
+                    onClick={() => { setSelectedCapacity([]); setMaxPrice(10000); setSelectedAmenities([]);
+                      setTempCapacity([]); setTempPrice(10000); setTempAmenities([]); }}
+                    className="text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+              {activeFilters && (
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                  Mostrando {filteredRooms.length} de {allRooms.length} habitaciones
+                </p>
+              )}
             </div>
           </Reveal>
 
+          {filteredRooms.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6" style={{ color: 'var(--text-light)' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </div>
+              <h3 className="font-display text-xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+                Sin resultados
+              </h3>
+              <p className="text-sm mb-6" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+                Ninguna habitación coincide con los filtros seleccionados.
+              </p>
+              <button onClick={() => { setSelectedCapacity([]); setMaxPrice(10000); setSelectedAmenities([]);
+                setTempCapacity([]); setTempPrice(10000); setTempAmenities([]); }}
+                className="btn-copper">
+                Limpiar filtros
+              </button>
+            </div>
+          ) : (
           <div className="flex flex-wrap justify-center gap-8">
-            {allRooms.map((room, i) => {
+            {filteredRooms.map((room, i) => {
               const unavailable = !!(llegadaParam && salidaParam && unavailableIds.includes(room.id));
               return (
                 <Reveal key={room.id} direction="up" delay={i * 120}
                   className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)]">
-                  <div style={{ position: 'relative', opacity: unavailable ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+                  <div id={`room-${room.id}`} style={{ position: 'relative', opacity: unavailable ? 0.5 : 1, transition: 'opacity 0.3s, outline 0.3s' }}>
                     {unavailable && (
                       <div style={{
                         position: 'absolute', top: '12px', left: '12px', zIndex: 10,
@@ -313,6 +427,7 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
               );
             })}
           </div>
+          )}
         </div>
       </section>
 
