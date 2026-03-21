@@ -388,25 +388,35 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     setSaving(true);
     setSavingError('');
 
-    const { error } = await supabase.from('reservations').insert({
-      user_id:       user.id,
-      room_id:       room.id,
-      fecha_llegada: llegada,
-      fecha_salida:  salida,
-      noches:        nights,
-      total:         total,
-      metodo_pago:   selectedPayment,
-      estado:        'confirmada',
-    });
+    try {
+      const res = await fetch('/api/create-reservation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id:       user.id,
+          room_id:       room.id,
+          fecha_llegada: llegada,
+          fecha_salida:  salida,
+          noches:        nights,
+          total:         total,
+          metodo_pago:   selectedPayment,
+        }),
+      });
 
-    if (error) {
-      setSavingError('No se pudo guardar la reservación. Intenta de nuevo.');
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSavingError(data.error ?? 'No se pudo guardar la reservación. Intenta de nuevo.');
+        setSaving(false);
+        return;
+      }
+
       setSaving(false);
-      return;
+      setStep('success');
+    } catch {
+      setSavingError('Error de conexión. Intenta de nuevo.');
+      setSaving(false);
     }
-
-    setSaving(false);
-    setStep('success');
   };
 
   // ── Preparar pago con tarjeta: crear reservación + PaymentIntent ──

@@ -23,6 +23,7 @@ interface Reservation {
   estado: string
   created_at: string
   payment_intent_id: string | null
+  comprobante_url: string | null
   rooms: {
     title: string
     images: string[]
@@ -277,6 +278,9 @@ export default function AccountPage() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [canceling, setCanceling] = useState(false)
   const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [uploadingId, setUploadingId] = useState<number | null>(null)
+  const [uploadResult, setUploadResult] = useState<{ id: number; success: boolean; message: string } | null>(null)
 
   // Redirigir si no hay sesión
   useEffect(() => {
@@ -358,6 +362,33 @@ export default function AccountPage() {
     setCanceling(false)
     setConfirmOpen(false)
     setCancelingId(null)
+  }
+
+  // ── Subir comprobante de transferencia ──
+  const handleUploadComprobante = async (reservationId: number, file: File) => {
+    if (!user) return
+    setUploadingId(reservationId)
+    setUploadResult(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('reservationId', String(reservationId))
+    formData.append('userId', user.id)
+
+    try {
+      const res = await fetch('/api/upload-comprobante', { method: 'POST', body: formData })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setUploadResult({ id: reservationId, success: false, message: data.error ?? 'Error al subir el comprobante' })
+      } else {
+        setUploadResult({ id: reservationId, success: true, message: 'Comprobante enviado correctamente. El hotel lo revisará pronto.' })
+        setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, comprobante_url: 'uploaded' } : r))
+      }
+    } catch {
+      setUploadResult({ id: reservationId, success: false, message: 'Error de conexión. Intenta de nuevo.' })
+    }
+    setUploadingId(null)
   }
 
   if (loading || !user) return null
@@ -470,42 +501,43 @@ export default function AccountPage() {
             ) : (
               // Lista de reservaciones
               <div className="space-y-4">
-                {reservations.map(res => (
-                  <div key={res.id} className="p-5 rounded-2xl transition-all duration-300"
-                    style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow = 'none'}>
-                    <div className="flex flex-col sm:flex-row gap-4">
+                {reservations.map(res => {
+                  const isExpanded = expandedId === res.id
+                  return (
+                  <div key={res.id} className="rounded-2xl transition-all duration-300 overflow-hidden"
+                    style={{ backgroundColor: 'var(--cream-dark)', border: `1px solid ${isExpanded ? 'var(--copper)' : 'var(--stone)'}` }}>
 
-                      {/* Imagen de la habitación */}
+                    {/* ── CABECERA — siempre visible, click para expandir ── */}
+                    <div className="p-5 cursor-pointer flex flex-col sm:flex-row gap-4"
+                      onClick={() => setExpandedId(isExpanded ? null : res.id)}>
+
+                      {/* Imagen */}
                       {res.rooms?.images?.[0] && (
                         <div className="relative w-full sm:w-32 h-24 rounded-xl overflow-hidden shrink-0">
-                          <img src={res.rooms.images[0]} alt={res.rooms?.title}
-                            className="w-full h-full object-cover" />
+                          <img src={res.rooms.images[0]} alt={res.rooms?.title} className="w-full h-full object-cover" />
                         </div>
                       )}
 
-                      {/* Info */}
+                      {/* Info resumida */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <h3 className="font-display text-lg font-semibold"
                             style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
                             {res.rooms?.title ?? 'Habitación'}
                           </h3>
-                          {/* Badge de estado */}
-                          <span className="text-xs px-2.5 py-1 rounded-full font-semibold shrink-0 uppercase tracking-wide"
-                            style={{
-                              backgroundColor: estadoColor[res.estado] ?? estadoColor.confirmada,
-                              color: estadoTextColor[res.estado] ?? estadoTextColor.confirmada,
-                              fontFamily: 'var(--font-ui)',
-                            }}>
-                            {res.estado}
-                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide"
+                              style={{ backgroundColor: estadoColor[res.estado] ?? estadoColor.confirmada, color: estadoTextColor[res.estado] ?? estadoTextColor.confirmada, fontFamily: 'var(--font-ui)' }}>
+                              {res.estado}
+                            </span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+                              className="w-4 h-4 transition-transform duration-300"
+                              style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                         </div>
-
-                        {/* Fechas */}
-                        <div className="flex items-center gap-2 mb-2 text-xs"
-                          style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                        <div className="flex items-center gap-2 mb-2 text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--copper)' }}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                           </svg>
@@ -513,44 +545,130 @@ export default function AccountPage() {
                           <span style={{ color: 'var(--text-light)' }}>·</span>
                           {res.noches} {res.noches === 1 ? 'noche' : 'noches'}
                         </div>
-
-                        {/* Pago y total */}
                         <div className="flex items-center justify-between">
-                          <span className="text-xs"
-                            style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                          <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                             {metodoPagoLabel[res.metodo_pago] ?? res.metodo_pago}
                           </span>
-                          <span className="font-display text-xl font-semibold"
-                            style={{ fontFamily: 'var(--font-display)', color: 'var(--copper)' }}>
+                          <span className="font-display text-xl font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--copper)' }}>
                             ${res.total}
                           </span>
                         </div>
-
-                        {/* Botón cancelar — solo si la reservación está confirmada o pagada */}
-                        {(res.estado === 'confirmada' || res.estado === 'pagada') && (
-                          <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--stone)' }}>
-                            {canCancel(res.fecha_llegada) ? (
-                              <button
-                                onClick={() => { setCancelingId(res.id); setConfirmOpen(true) }}
-                                className="text-xs font-medium transition-colors"
-                                style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}
-                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
-                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
-                                Cancelar reservación
-                              </button>
-                            ) : (
-                              // Menos de 48h — no se puede cancelar
-                              <p className="text-xs"
-                                style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>
-                                Ya no es posible cancelar (menos de 48h antes del check-in)
-                              </p>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
+
+                    {/* ── DETALLE EXPANDIDO ── */}
+                    {isExpanded && (
+                      <div className="px-5 pb-5" style={{ borderTop: '1px solid var(--stone)' }}>
+                        <div className="pt-5 space-y-3">
+
+                          {/* Info detallada */}
+                          <div className="grid grid-cols-2 gap-3 text-xs" style={{ fontFamily: 'var(--font-ui)' }}>
+                            {[
+                              { label: 'Reservación', value: `#${res.id}` },
+                              { label: 'A nombre de', value: displayName },
+                              { label: 'Check-in', value: formatDate(res.fecha_llegada) },
+                              { label: 'Check-out', value: formatDate(res.fecha_salida) },
+                              { label: 'Noches', value: String(res.noches) },
+                              { label: 'Costo por noche', value: `$${Math.round(res.total / res.noches)}` },
+                              { label: 'Total', value: `$${res.total}` },
+                              { label: 'Método de pago', value: metodoPagoLabel[res.metodo_pago] ?? res.metodo_pago },
+                            ].map(item => (
+                              <div key={item.label} className="p-3 rounded-lg" style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)' }}>
+                                <p style={{ color: 'var(--text-muted)', marginBottom: '2px' }}>{item.label}</p>
+                                <p className="font-semibold" style={{ color: 'var(--charcoal)' }}>{item.value}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Comprobante de transferencia */}
+                          {res.metodo_pago === 'transfer' && res.estado === 'confirmada' && (
+                            <div className="p-4 rounded-xl mt-2"
+                              style={{ backgroundColor: 'rgba(200,129,58,0.06)', border: '1px solid rgba(200,129,58,0.2)' }}>
+                              {res.comprobante_url ? (
+                                <div className="flex items-center gap-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 shrink-0" style={{ color: '#3ca050' }}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                  </svg>
+                                  <p className="text-xs" style={{ color: '#3ca050', fontFamily: 'var(--font-ui)', fontWeight: 600 }}>
+                                    Comprobante enviado — el hotel lo revisará pronto
+                                  </p>
+                                </div>
+                              ) : (
+                                <>
+                                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
+                                    📎 Sube tu comprobante de transferencia
+                                  </p>
+                                  <p className="text-xs mb-3" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+                                    Para confirmar tu pago, sube una foto o PDF de tu comprobante. El hotel lo revisará y marcará tu reservación como pagada.
+                                  </p>
+                                  {uploadResult?.id === res.id && (
+                                    <p className="text-xs mb-3 font-semibold" style={{ color: uploadResult.success ? '#3ca050' : '#c03c3c', fontFamily: 'var(--font-ui)' }}>
+                                      {uploadResult.message}
+                                    </p>
+                                  )}
+                                  <label className="btn-copper cursor-pointer inline-block text-center"
+                                    style={{ opacity: uploadingId === res.id ? 0.7 : 1 }}>
+                                    {uploadingId === res.id ? 'Subiendo...' : 'Seleccionar archivo'}
+                                    <input
+                                      type="file"
+                                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                                      className="hidden"
+                                      disabled={uploadingId === res.id}
+                                      onChange={e => {
+                                        const file = e.target.files?.[0]
+                                        if (file) handleUploadComprobante(res.id, file)
+                                      }}
+                                    />
+                                  </label>
+                                  <p className="text-xs mt-2" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
+                                    Formatos: JPG, PNG, WEBP, PDF · Máximo 5 MB
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Mensaje de contacto */}
+                          <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)' }}>
+                            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+                              ¿Tienes dudas o alguna queja sobre tu reservación? No dudes en contactarnos.
+                            </p>
+                            <Link href="/contact" className="inline-flex items-center gap-1.5 text-xs font-semibold mt-2 transition-colors"
+                              style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}
+                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
+                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                              Ir a contacto
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                              </svg>
+                            </Link>
+                          </div>
+
+                          {/* Botón cancelar */}
+                          {(res.estado === 'confirmada' || res.estado === 'pagada') && (
+                            <div className="pt-2">
+                              {canCancel(res.fecha_llegada) ? (
+                                <button
+                                  onClick={() => { setCancelingId(res.id); setConfirmOpen(true) }}
+                                  className="text-xs font-medium transition-colors"
+                                  style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}
+                                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
+                                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                                  Cancelar reservación
+                                </button>
+                              ) : (
+                                <p className="text-xs" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>
+                                  Ya no es posible cancelar (menos de 48h antes del check-in)
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
