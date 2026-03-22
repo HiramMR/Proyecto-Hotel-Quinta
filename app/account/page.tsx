@@ -46,6 +46,7 @@ const estadoColor: Record<string, string> = {
   pagada:     'rgba(60,160,80,0.1)',
   cancelada:  'rgba(200,60,60,0.08)',
   completada: 'rgba(60,160,80,0.1)',
+  reembolsada: 'rgba(138,126,116,0.15)',
 }
 
 const estadoTextColor: Record<string, string> = {
@@ -53,6 +54,7 @@ const estadoTextColor: Record<string, string> = {
   pagada:     '#3ca050',
   cancelada:  '#c03c3c',
   completada: '#3ca050',
+  reembolsada: 'var(--text-muted)',
 }
 
 // ── Formulario de edición de perfil ──
@@ -332,7 +334,7 @@ export default function AccountPage() {
           const updatedRes = parsedRes.map((r: any) => {
             if (r.id === cancelingId) {
               refunded = r.metodo_pago === 'card'
-              return { ...r, estado: 'cancelada', refund_requested: !refunded }
+              return { ...r, estado: refunded ? 'reembolsada' : 'cancelada', refund_requested: !refunded }
             }
             return r
           })
@@ -342,7 +344,7 @@ export default function AccountPage() {
 
       // Actualizar estado local
       setReservations(prev =>
-        prev.map(r => r.id === cancelingId ? { ...r, estado: 'cancelada' } : r)
+        prev.map(r => r.id === cancelingId ? { ...r, estado: refunded ? 'reembolsada' : 'cancelada' } : r)
       )
 
       // Mensaje según método de pago

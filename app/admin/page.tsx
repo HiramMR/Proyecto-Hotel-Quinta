@@ -70,12 +70,14 @@ const estadoColor: Record<string, string> = {
   pagada:     'rgba(60,160,80,0.1)',
   cancelada:  'rgba(200,60,60,0.08)',
   completada: 'rgba(60,160,80,0.1)',
+  reembolsada: 'rgba(138,126,116,0.15)',
 }
 const estadoTextColor: Record<string, string> = {
   confirmada: 'var(--copper)',
   pagada:     '#3ca050',
   cancelada:  '#c03c3c',
   completada: '#3ca050',
+  reembolsada: 'var(--text-muted)',
 }
 const metodoPagoLabel: Record<string, string> = {
   card: 'Tarjeta',
@@ -480,8 +482,10 @@ export default function AdminPage() {
                             cursor: 'pointer',
                           }}>
                           <option value="confirmada">Confirmada</option>
+                          <option value="pagada">Pagada</option>
                           <option value="completada">Completada</option>
                           <option value="cancelada">Cancelada</option>
+                          <option value="reembolsada">Reembolsada</option>
                         </select>
                       </div>
                     </div>
@@ -581,14 +585,7 @@ export default function AdminPage() {
                         </div>
 
                         {/* Monto y botón */}
-                        <div className="flex flex-col items-end gap-3 shrink-0">
-                          <div className="text-right">
-                            <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Monto a reembolsar</p>
-                            <span className="font-display text-2xl font-semibold"
-                              style={{ fontFamily: 'var(--font-display)', color: 'var(--copper)' }}>
-                              ${res.total}
-                            </span>
-                          </div>
+                        <div className="pt-24.5 flex flex-col items-end gap-3 shrink-0">
                           {/* Botón marcar como reembolsado */}
                           <button
                             onClick={async () => {
@@ -596,12 +593,12 @@ export default function AdminPage() {
                               if (stored) {
                                 try {
                                   const parsed = JSON.parse(stored)
-                                  const updated = parsed.map((r: any) => r.id === res.id ? { ...r, refund_requested: false } : r)
+                                  const updated = parsed.map((r: any) => r.id === res.id ? { ...r, refund_requested: false, estado: 'reembolsada' } : r)
                                   localStorage.setItem('reservations', JSON.stringify(updated))
                                 } catch (e) { console.error(e) }
                               }
                               setReservations(prev =>
-                                prev.map(r => r.id === res.id ? { ...r, refund_requested: false } : r)
+                                prev.map(r => r.id === res.id ? { ...r, refund_requested: false, estado: 'reembolsada' } : r)
                               )
                             }}
                             className="text-xs px-4 py-2 rounded-lg font-semibold transition-all"
@@ -615,6 +612,14 @@ export default function AdminPage() {
                             onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(60,160,80,0.1)'}>
                             ✓ Marcar como reembolsado
                           </button>
+                          {/* Monto */}
+                          <div className="text-right">
+                            <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Monto a reembolsar</p>
+                            <span className="font-display text-2xl font-semibold"
+                              style={{ fontFamily: 'var(--font-display)', color: 'var(--copper)' }}>
+                              ${res.total}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
