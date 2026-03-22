@@ -38,7 +38,7 @@ export default function RoomCard({ room, onReserve, amenitiesList, unavailable =
   const { title, description, price, images, capacity, popular, amenities } = room;
 
   return (
-    <div className="card-warm w-full group">
+    <div className="card-warm w-full h-full flex flex-col group">
 
       {/* ── IMAGEN / CARRUSEL ── */}
       <div className="relative h-64 overflow-hidden">
@@ -67,7 +67,7 @@ export default function RoomCard({ room, onReserve, amenitiesList, unavailable =
       </div>
 
       {/* ── CONTENIDO ── */}
-      <div className="p-6">
+      <div className="p-6 flex-1 flex flex-col">
         <h3 className="font-display text-2xl font-semibold mb-2 leading-tight"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--cream)' }}>
           {title}
@@ -92,7 +92,7 @@ export default function RoomCard({ room, onReserve, amenitiesList, unavailable =
           </div>
         )}
 
-        <div className="flex justify-between items-center pt-4"
+        <div className="flex justify-between items-center pt-4 mt-auto"
           style={{ borderTop: '1px solid rgba(245,240,232,0.1)' }}>
           <div>
             <span className="font-display text-2xl font-semibold"

@@ -9,7 +9,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth-context'
 
 export default function LoginPage() {
@@ -19,7 +18,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, signIn } = useAuth()
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 100)
@@ -36,20 +35,10 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: correo,
-      password: contrasena,
-    })
+    const { error } = await signIn(correo, contrasena)
 
     if (error) {
-      // Traducir errores comunes al español
-      if (error.message.includes('Invalid login credentials')) {
-        setError('Correo o contraseña incorrectos.')
-      } else if (error.message.includes('Email not confirmed')) {
-        setError('Por favor confirma tu correo electrónico antes de iniciar sesión.')
-      } else {
-        setError('Ocurrió un error. Intenta de nuevo.')
-      }
+      setError(error.message)
       setLoading(false)
       return
     }

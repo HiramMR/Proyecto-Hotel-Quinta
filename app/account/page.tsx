@@ -9,7 +9,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams} from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
-import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
 
 interface Reservation {
@@ -113,20 +112,26 @@ function ProfileForm({ user, profile, onSaved }: {
     setSaveSuccess(false)
 
     const now = new Date().toISOString()
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        nombre:               form.nombre.trim(),
-        apellido:             form.apellido.trim() || null,
-        telefono:             form.telefono.trim() || null,
-        last_profile_update:  now,
-      })
-      .eq('id', user.id)
-
-    if (error) {
-      setSaveError('No se pudo guardar. Intenta de nuevo.')
-      setSaving(false)
-      return
+    const storedUsers = localStorage.getItem('users')
+    if (storedUsers) {
+      try {
+        const parsedUsers = JSON.parse(storedUsers)
+        const updatedUsers = parsedUsers.map((u: any) => {
+          if (u.id === user.id) {
+            return {
+              ...u,
+              nombre: form.nombre.trim(),
+              apellido: form.apellido.trim() || null,
+              telefono: form.telefono.trim() || null,
+              last_profile_update: now,
+            }
+          }
+          return u
+        })
+        localStorage.setItem('users', JSON.stringify(updatedUsers))
+      } catch (e) {
+        console.error(e)
+      }
     }
 
     setLastUpdate(new Date(now))
@@ -290,24 +295,18 @@ export default function AccountPage() {
   // Cargar reservaciones del usuario
   useEffect(() => {
     if (!user) return
-    const load = async () => {
-      const { data } = await supabase
-        .from('reservations')
-        .select(`
-          *,
-          rooms (
-            title,
-            images,
-            stars
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      setReservations(data ?? [])
-      setLoadingRes(false)
+    const stored = localStorage.getItem('reservations')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        const userRes = parsed.filter((r: any) => r.user_id === user.id)
+        userRes.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+        setReservations(userRes)
+      } catch (e) { console.error(e) }
+    } else {
+      setReservations([])
     }
-    load()
+    setLoadingRes(false)
   }, [user])
 
   // ── Verifica si faltan más de 48h para el check-in ──
@@ -324,18 +323,21 @@ export default function AccountPage() {
     if (!cancelingId) return
     setCanceling(true)
 
-    try {
-      const res = await fetch('/api/cancel-reservation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reservationId: cancelingId }),
-      })
-      const data = await res.json()
-
-      if (!res.ok) {
-        setCancelResult({ success: false, message: data.error ?? 'Error al cancelar' })
-        setCanceling(false)
-        return
+    setTimeout(() => {
+      const storedRes = localStorage.getItem('reservations')
+      let refunded = false
+      if (storedRes) {
+        try {
+          const parsedRes = JSON.parse(storedRes)
+          const updatedRes = parsedRes.map((r: any) => {
+            if (r.id === cancelingId) {
+              refunded = r.metodo_pago === 'card'
+              return { ...r, estado: 'cancelada', refund_requested: !refunded }
+            }
+            return r
+          })
+          localStorage.setItem('reservations', JSON.stringify(updatedRes))
+        } catch (e) { console.error(e) }
       }
 
       // Actualizar estado local
@@ -344,7 +346,7 @@ export default function AccountPage() {
       )
 
       // Mensaje según método de pago
-      if (data.refunded) {
+      if (refunded) {
         setCancelResult({
           success: true,
           message: 'Reservación cancelada. El reembolso se procesará en 5-10 días hábiles en tu tarjeta.',
@@ -355,13 +357,11 @@ export default function AccountPage() {
           message: 'Reservación cancelada. Un representante del hotel se pondrá en contacto contigo para gestionar el reembolso.',
         })
       }
-    } catch {
-      setCancelResult({ success: false, message: 'Error de conexión. Intenta de nuevo.' })
-    }
 
     setCanceling(false)
     setConfirmOpen(false)
     setCancelingId(null)
+    }, 800)
   }
 
   // ── Subir comprobante de transferencia ──
@@ -370,25 +370,19 @@ export default function AccountPage() {
     setUploadingId(reservationId)
     setUploadResult(null)
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('reservationId', String(reservationId))
-    formData.append('userId', user.id)
-
-    try {
-      const res = await fetch('/api/upload-comprobante', { method: 'POST', body: formData })
-      const data = await res.json()
-
-      if (!res.ok) {
-        setUploadResult({ id: reservationId, success: false, message: data.error ?? 'Error al subir el comprobante' })
-      } else {
-        setUploadResult({ id: reservationId, success: true, message: 'Comprobante enviado correctamente. El hotel lo revisará pronto.' })
-        setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, comprobante_url: 'uploaded' } : r))
+    setTimeout(() => {
+      const storedRes = localStorage.getItem('reservations')
+      if (storedRes) {
+        try {
+          const parsedRes = JSON.parse(storedRes)
+          const updatedRes = parsedRes.map((r: any) => r.id === reservationId ? { ...r, comprobante_url: 'uploaded' } : r)
+          localStorage.setItem('reservations', JSON.stringify(updatedRes))
+        } catch (e) { console.error(e) }
       }
-    } catch {
-      setUploadResult({ id: reservationId, success: false, message: 'Error de conexión. Intenta de nuevo.' })
-    }
-    setUploadingId(null)
+      setUploadResult({ id: reservationId, success: true, message: 'Comprobante enviado correctamente. El hotel lo revisará pronto.' })
+      setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, comprobante_url: 'uploaded' } : r))
+      setUploadingId(null)
+    }, 1000)
   }
 
   if (loading || !user) return null

@@ -13,7 +13,6 @@ import Carousel from '../components/Carousel';
 import RoomCard from '../components/RoomCard';
 import RoomModal from '../components/RoomModal';
 import DatePicker from '../components/DatePicker';
-import { supabase } from '../../lib/supabase';
 
 function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
@@ -65,26 +64,23 @@ interface RoomData {
   price: number; images: string[]; capacity: number; popular?: boolean; stars?: number; amenities?: string[];
 }
 
-interface RoomsClientProps {
-  allRooms: RoomData[];
-}
-
 // Wrapper necesario para useSearchParams dentro de Suspense
-export default function RoomsClient({ allRooms }: RoomsClientProps) {
+export default function RoomsClient() {
   return (
     <Suspense fallback={
       <main style={{ backgroundColor: 'var(--cream)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Cargando...</p>
       </main>
     }>
-      <RoomsContent allRooms={allRooms} />
+      <RoomsContent />
     </Suspense>
   );
 }
 
-function RoomsContent({ allRooms }: RoomsClientProps) {
+function RoomsContent() {
   const searchParams = useSearchParams();
 
+  const [localRooms, setLocalRooms] = useState<RoomData[]>([]);
   const llegadaParam = searchParams.get('llegada') ?? '';
   const salidaParam  = searchParams.get('salida')  ?? '';
 
@@ -119,24 +115,44 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
 
   useEffect(() => {
     const t = setTimeout(() => setIsMounted(true), 200);
+    
+    // Cargar habitaciones desde localStorage
+    const storedRooms = localStorage.getItem('rooms');
+    if (storedRooms) {
+      try {
+        setLocalRooms(JSON.parse(storedRooms));
+      } catch (err) {
+        console.error('Error al parsear habitaciones del localStorage', err);
+      }
+    }
+    
     return () => clearTimeout(t);
   }, []);
 
-  // Solo necesitamos consultar las habitaciones OCUPADAS — las habitaciones
-  // ya llegaron pre-cargadas desde el servidor, sin timing issues.
+  // Consultamos las reservaciones desde localStorage
   useEffect(() => {
     if (!llegadaParam || !salidaParam) {
       setUnavailableIds([]);
       return;
     }
-    const fetchOcupadas = async () => {
-      const { data } = await supabase
-        .from('reservations')
-        .select('room_id')
-        .in('estado', ['confirmada', 'pagada'])
-        .lt('fecha_llegada', salidaParam)
-        .gt('fecha_salida', llegadaParam)
-      setUnavailableIds((data ?? []).map(r => r.room_id));
+    const fetchOcupadas = () => {
+      const storedReservations = localStorage.getItem('reservations');
+      if (storedReservations) {
+        try {
+          const reservations = JSON.parse(storedReservations);
+          const ocupadas = reservations.filter((r: any) =>
+            ['confirmada', 'pagada'].includes(r.estado) &&
+            r.fecha_llegada < salidaParam &&
+            r.fecha_salida > llegadaParam
+          );
+          setUnavailableIds(ocupadas.map((r: any) => r.room_id));
+        } catch (err) {
+          console.error('Error al parsear reservaciones del localStorage', err);
+          setUnavailableIds([]);
+        }
+      } else {
+        setUnavailableIds([]);
+      }
     };
     fetchOcupadas();
   }, [llegadaParam, salidaParam]);
@@ -145,7 +161,7 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
     setTempAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
 
   // ── Aplicar filtros de capacidad, precio y amenidades ──
-  const filteredRooms = allRooms.filter(room => {
+  const filteredRooms = localRooms.filter(room => {
     if (selectedCapacity.length > 0 && !selectedCapacity.includes(room.capacity)) return false;
     if (room.price > maxPrice) return false;
     if (selectedAmenities.length > 0) {
@@ -157,7 +173,7 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
 
   const activeFilters = !!(selectedCapacity.length > 0 || maxPrice < 10000 || selectedAmenities.length > 0);
 
-  const roomSlides = allRooms.map(room => ({
+  const roomSlides = localRooms.map(room => ({
     src: room.images[0] ?? '/img/banner.png',
     content: (
       <div className="text-center px-4" onClick={() => scrollToRoom(room.id)}
@@ -276,7 +292,7 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
                     <div className="mb-5">
                       <label className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Capacidad</label>
                       <div className="flex gap-3">
-                        {[2, 4, 6, 8].map(cap => (
+                        {[1, 2, 3, 4].map(cap => (
                           <button key={cap} onClick={() => setTempCapacity(prev => prev.includes(cap) ? prev.filter(c => c !== cap) : [...prev, cap])}
                             className="flex items-center gap-1 text-xs font-medium transition-colors"
                             style={{ color: tempCapacity.includes(cap) ? 'var(--copper)' : 'var(--text-muted)' }}>
@@ -371,7 +387,7 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
               </div>
               {activeFilters && (
                 <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
-                  Mostrando {filteredRooms.length} de {allRooms.length} habitaciones
+                  Mostrando {filteredRooms.length} de {localRooms.length} habitaciones
                 </p>
               )}
             </div>
@@ -398,13 +414,13 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
               </button>
             </div>
           ) : (
-          <div className="flex flex-wrap justify-center gap-8">
+          <div className="flex flex-wrap items-stretch justify-center gap-8">
             {filteredRooms.map((room, i) => {
               const unavailable = !!(llegadaParam && salidaParam && unavailableIds.includes(room.id));
               return (
                 <Reveal key={room.id} direction="up" delay={i * 120}
-                  className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)]">
-                  <div id={`room-${room.id}`} style={{ position: 'relative', opacity: unavailable ? 0.5 : 1, transition: 'opacity 0.3s, outline 0.3s' }}>
+                  className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)] flex flex-col">
+                  <div id={`room-${room.id}`} className="flex-1 flex flex-col relative" style={{ opacity: unavailable ? 0.5 : 1, transition: 'opacity 0.3s, outline 0.3s' }}>
                     {unavailable && (
                       <div style={{
                         position: 'absolute', top: '12px', left: '12px', zIndex: 10,
@@ -416,12 +432,14 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
                         No disponible
                       </div>
                     )}
-                    <RoomCard
-                      room={room}
-                      onReserve={unavailable ? () => {} : setSelectedRoom}
-                      amenitiesList={amenitiesList}
-                      unavailable={unavailable}
-                    />
+                    <div className="flex-1 *:h-full">
+                      <RoomCard
+                        room={room}
+                        onReserve={unavailable ? () => {} : setSelectedRoom}
+                        amenitiesList={amenitiesList}
+                        unavailable={unavailable}
+                      />
+                    </div>
                   </div>
                 </Reveal>
               );

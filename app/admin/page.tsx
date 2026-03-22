@@ -14,7 +14,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
-import { supabase } from '../../lib/supabase'
 
 interface Reservation {
   id: number
@@ -39,13 +38,15 @@ interface UserProfile {
   telefono: string | null
   role: string | null
   created_at: string
+  email?: string
+  password?: string
 }
 
 interface Room {
   id: number
   title: string
   description: string
-  long_description: string
+  longDescription: string
   price: number
   capacity: number
   stars: number
@@ -83,10 +84,49 @@ const AMENITIES_OPTIONS = [
 ]
 
 const emptyRoom: Omit<Room, 'id'> = {
-  title: '', description: '', long_description: '',
+  title: '', description: '', longDescription: '',
   price: 0, capacity: 1, stars: 4, popular: false,
   images: [], amenities: [],
 }
+
+const defaultUsers: UserProfile[] = [
+  { id: '1', nombre: 'Admin', apellido: 'Sistema', email: 'admin@quintadalam.com', password: 'admin', telefono: '555-0000', role: 'admin', created_at: new Date().toISOString() },
+  { id: '2', nombre: 'Juan', apellido: 'Pérez', email: 'juan@example.com', password: 'password123', telefono: '555-1234', role: 'user', created_at: new Date().toISOString() },
+  { id: '3', nombre: 'María', apellido: 'Gómez', email: 'maria@example.com', password: 'password123', telefono: '555-5678', role: 'user', created_at: new Date().toISOString() }
+]
+
+const defaultReservations: Reservation[] = [
+  {
+    id: 1,
+    fecha_llegada: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0],
+    noches: 5,
+    total: 7250,
+    metodo_pago: 'card',
+    estado: 'confirmada',
+    created_at: new Date().toISOString(),
+    payment_intent_id: null,
+    refund_id: null,
+    refund_requested: false,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'] }
+  },
+  {
+    id: 2,
+    fecha_llegada: new Date(Date.now() + 86400000 * 15).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() + 86400000 * 17).toISOString().split('T')[0],
+    noches: 2,
+    total: 2600,
+    metodo_pago: 'transfer',
+    estado: 'pagada',
+    created_at: new Date().toISOString(),
+    payment_intent_id: null,
+    refund_id: null,
+    refund_requested: false,
+    profiles: { nombre: 'María', apellido: 'Gómez', telefono: '555-5678' },
+    rooms: { title: 'Paracho', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'] }
+  }
+]
 
 export default function AdminPage() {
   const { user, isAdmin, loading } = useAuth()
@@ -123,36 +163,63 @@ export default function AdminPage() {
   // Cargar reservaciones
   useEffect(() => {
     if (loading || !isAdmin) return
-    supabase
-      .from('reservations')
-      .select(`*, profiles(nombre, apellido, telefono), rooms(title, images)`)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { setReservations(data ?? []); setLoadingRes(false) })
+    const stored = localStorage.getItem('reservations')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        parsed.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+        setReservations(parsed)
+      } catch (e) { console.error(e) }
+    } else {
+      localStorage.setItem('reservations', JSON.stringify(defaultReservations))
+      setReservations(defaultReservations)
+    }
+    setLoadingRes(false)
   }, [isAdmin, loading])
 
   // Cargar usuarios
   useEffect(() => {
     if (loading || !isAdmin) return
-    supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { setUsers(data ?? []); setLoadingUsers(false) })
+    const stored = localStorage.getItem('users')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        parsed.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+        setUsers(parsed)
+      } catch (e) { console.error(e) }
+    } else {
+      localStorage.setItem('users', JSON.stringify(defaultUsers))
+      setUsers(defaultUsers)
+    }
+    setLoadingUsers(false)
   }, [isAdmin, loading])
 
   // Cargar habitaciones
   useEffect(() => {
     if (loading || !isAdmin) return
-    supabase
-      .from('rooms')
-      .select('*')
-      .order('id', { ascending: true })
-      .then(({ data }) => { setRooms(data ?? []); setLoadingRooms(false) })
+    const stored = localStorage.getItem('rooms')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        parsed.sort((a: any, b: any) => a.id - b.id)
+        setRooms(parsed)
+      } catch (e) { console.error(e) }
+    } else {
+      setRooms([])
+    }
+    setLoadingRooms(false)
   }, [isAdmin, loading])
 
   // ── Cambiar estado de reservación ──
   const handleEstadoChange = async (id: number, nuevoEstado: string) => {
-    await supabase.from('reservations').update({ estado: nuevoEstado }).eq('id', id)
+    const stored = localStorage.getItem('reservations')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        const updated = parsed.map((r: any) => r.id === id ? { ...r, estado: nuevoEstado } : r)
+        localStorage.setItem('reservations', JSON.stringify(updated))
+      } catch (e) { console.error(e) }
+    }
     setReservations(prev => prev.map(r => r.id === id ? { ...r, estado: nuevoEstado } : r))
   }
 
@@ -170,7 +237,7 @@ export default function AdminPage() {
     setRoomForm({
       title: room.title,
       description: room.description,
-      long_description: room.long_description,
+      longDescription: room.longDescription,
       price: room.price,
       capacity: room.capacity,
       stars: room.stars,
@@ -185,16 +252,21 @@ export default function AdminPage() {
   // ── Guardar habitación (agregar o editar) ──
   const handleSaveRoom = async () => {
     setSavingRoom(true)
+    const stored = localStorage.getItem('rooms')
+    let parsedRooms: Room[] = stored ? JSON.parse(stored) : []
+
     if (editingRoom) {
       // Editar existente
-      const { data } = await supabase
-        .from('rooms').update(roomForm).eq('id', editingRoom.id).select().single()
-      if (data) setRooms(prev => prev.map(r => r.id === editingRoom.id ? data : r))
+      parsedRooms = parsedRooms.map(r => r.id === editingRoom.id ? { ...roomForm, id: editingRoom.id } as Room : r)
+      setRooms(parsedRooms)
     } else {
       // Agregar nueva
-      const { data } = await supabase.from('rooms').insert(roomForm).select().single()
-      if (data) setRooms(prev => [...prev, data])
+      const newId = parsedRooms.length > 0 ? Math.max(...parsedRooms.map(r => r.id)) + 1 : 1
+      const newRoom = { ...roomForm, id: newId } as Room
+      parsedRooms.push(newRoom)
+      setRooms(parsedRooms)
     }
+    localStorage.setItem('rooms', JSON.stringify(parsedRooms))
     setSavingRoom(false)
     setRoomModalOpen(false)
   }
@@ -202,7 +274,14 @@ export default function AdminPage() {
   // ── Eliminar habitación ──
   const handleDeleteRoom = async () => {
     if (!deleteRoomId) return
-    await supabase.from('rooms').delete().eq('id', deleteRoomId)
+    const stored = localStorage.getItem('rooms')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        const updated = parsed.filter((r: Room) => r.id !== deleteRoomId)
+        localStorage.setItem('rooms', JSON.stringify(updated))
+      } catch (e) { console.error(e) }
+    }
     setRooms(prev => prev.filter(r => r.id !== deleteRoomId))
     setDeleteRoomId(null)
   }
@@ -471,10 +550,14 @@ export default function AdminPage() {
                           {/* Botón marcar como reembolsado */}
                           <button
                             onClick={async () => {
-                              await supabase
-                                .from('reservations')
-                                .update({ refund_requested: false })
-                                .eq('id', res.id)
+                              const stored = localStorage.getItem('reservations')
+                              if (stored) {
+                                try {
+                                  const parsed = JSON.parse(stored)
+                                  const updated = parsed.map((r: any) => r.id === res.id ? { ...r, refund_requested: false } : r)
+                                  localStorage.setItem('reservations', JSON.stringify(updated))
+                                } catch (e) { console.error(e) }
+                              }
                               setReservations(prev =>
                                 prev.map(r => r.id === res.id ? { ...r, refund_requested: false } : r)
                               )
@@ -533,7 +616,7 @@ export default function AdminPage() {
                         {u.nombre ? `${u.nombre} ${u.apellido ?? ''}`.trim() : '—'}
                       </p>
                       <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
-                        {u.telefono ?? 'Sin teléfono'}
+                        {u.email ?? 'Sin correo'} · {u.telefono ?? 'Sin teléfono'}
                         {' · '}Registrado el {new Date(u.created_at).toLocaleDateString('es-MX')}
                       </p>
                     </div>
@@ -677,8 +760,8 @@ export default function AdminPage() {
                 <label className="block text-xs font-semibold uppercase tracking-widest mb-2"
                   style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Descripción completa</label>
                 <textarea rows={4} className="input-warm resize-none" placeholder="Descripción detallada de la habitación..."
-                  value={roomForm.long_description}
-                  onChange={e => setRoomForm(p => ({ ...p, long_description: e.target.value }))} />
+                  value={roomForm.longDescription}
+                  onChange={e => setRoomForm(p => ({ ...p, longDescription: e.target.value }))} />
               </div>
 
               {/* Precio, Capacidad, Estrellas */}
@@ -716,18 +799,22 @@ export default function AdminPage() {
               </div>
 
               {/* Popular */}
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRoomForm(p => ({ ...p, popular: !p.popular }))}
-                  className="w-10 h-6 rounded-full transition-colors relative"
+              <div className="p-4 rounded-xl flex items-center justify-between"
+                style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+                <div>
+                  <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>
+                    Destacar habitación
+                  </label>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                    Se mostrará en la sección principal de la página de inicio.
+                  </p>
+                </div>
+                <button type="button" onClick={() => setRoomForm(p => ({ ...p, popular: !p.popular }))}
+                  className="w-12 h-7 rounded-full transition-colors relative shrink-0"
                   style={{ backgroundColor: roomForm.popular ? 'var(--copper)' : 'var(--stone)' }}>
-                  <div className="w-4 h-4 rounded-full bg-white absolute top-1 transition-all"
-                    style={{ left: roomForm.popular ? '1.25rem' : '0.25rem' }} />
+                  <div className="w-5 h-5 rounded-full bg-white absolute top-1 transition-all"
+                    style={{ left: roomForm.popular ? '1.5rem' : '0.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
                 </button>
-                <span className="text-sm" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>
-                  Marcar como popular
-                </span>
               </div>
 
               {/* Amenidades */}

@@ -9,7 +9,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth-context'
 
 export default function RegisterPage() {
@@ -54,31 +53,33 @@ export default function RegisterPage() {
 
     setLoading(true)
 
-    const { error } = await supabase.auth.signUp({
-      email: correo,
-      password: contrasena,
-      options: {
-        // Estos datos se pasan al trigger que crea el perfil
-        data: {
-          nombre,
-          apellido,
-          telefono,
-        }
-      }
-    })
+    setTimeout(() => {
+      const storedUsers = localStorage.getItem('users')
+      const users = storedUsers ? JSON.parse(storedUsers) : []
 
-    if (error) {
-      if (error.message.includes('already registered')) {
+      if (users.find((u: any) => u.email === correo)) {
         setError('Este correo ya está registrado. Intenta iniciar sesión.')
-      } else {
-        setError('Ocurrió un error al crear tu cuenta. Intenta de nuevo.')
+        setLoading(false)
+        return
       }
-      setLoading(false)
-      return
-    }
 
-    setSuccess(true)
-    setLoading(false)
+      const newUser = {
+        id: Date.now().toString(),
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        email: correo.trim(),
+        password: contrasena,
+        telefono: telefono.trim(),
+        role: 'user',
+        created_at: new Date().toISOString()
+      }
+
+      users.push(newUser)
+      localStorage.setItem('users', JSON.stringify(users))
+
+      setSuccess(true)
+      setLoading(false)
+    }, 800)
   }
 
   // Pantalla de éxito

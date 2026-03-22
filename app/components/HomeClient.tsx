@@ -73,9 +73,165 @@ interface HomeClientProps {
   features: Feature[];
 }
 
+const defaultRooms: RoomData[] = [
+  { 
+    id: 1, 
+    title: 'Tzintzuntzan', 
+    price: 1450, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Decoración inspirada en la capital del imperio Purépecha, con detalles artesanales.',
+    longDescription: 'Siente la grandeza del antiguo imperio Purépecha. Esta habitación está adornada con fina alfarería y bordados tradicionales. Cuenta con una amplia cama King Size, vista a los jardines principales, baño con tina de hidromasaje y servicio a la habitación las 24 horas.',
+    capacity: 3,
+    amenities: ['Wifi', 'Television', 'Agua caliente', 'Minibar', '1 Cama']
+  },
+  { 
+    id: 2, 
+    title: 'Paracho', 
+    price: 1300, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Ambiente acústico y detalles en madera fina, honor a la capital de la guitarra.',
+    longDescription: 'Diseñada con paneles de madera fina que ofrecen una acústica perfecta e inspiran tranquilidad. Equipada con dos camas Queen Size, un pequeño balcón privado y un sistema de sonido premium para que disfrutes de tu música favorita.',
+    capacity: 4,
+    amenities: ['Wifi', 'Television', '2 Camas']
+  },
+  { 
+    id: 3, 
+    title: 'Yunuén', 
+    price: 1200, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Tranquilidad isleña con vista a nuestros jardines centrales.',
+    longDescription: 'Un refugio de paz que evoca la serenidad de la isla de Yunuén. Cuenta con una cama matrimonial, decoración minimalista con tonos azules y blancos, y un gran ventanal que permite una iluminación natural espectacular.',
+    capacity: 2,
+    amenities: ['Wifi', 'Television', '1 Cama']
+  },
+  { 
+    id: 4, 
+    title: 'Pátzcuaro', 
+    price: 1500, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Estilo colonial mágico con toques de tradición y gran confort.',
+    longDescription: 'Sumérgete en el encanto colonial. Esta amplia habitación cuenta con techos altos con vigas de madera, piso de terracota, una cama King Size con dosel y una sala de estar privada ideal para la lectura o el descanso.',
+    capacity: 2,
+    amenities: ['Wifi', 'Television', '1 Cama']
+  },
+  { 
+    id: 5, 
+    title: 'Coeneo', 
+    price: 1100, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'La calidez de nuestro hogar, ideal para descansar plenamente.',
+    longDescription: 'Nuestra habitación más acogedora. Perfecta para viajeros que buscan comodidad y funcionalidad. Cuenta con una cama matrimonial, escritorio de trabajo y una decoración cálida que te hará sentir como en casa.',
+    capacity: 2,
+    amenities: ['Wifi', 'Television', '1 Cama']
+  },
+  { 
+    id: 6, 
+    title: 'Janitzio', 
+    price: 1250, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Vistas espectaculares y decoración inspirada en la tradición pesquera.',
+    longDescription: 'Con redes decorativas y elementos alusivos a los pescadores tradicionales. Esta habitación ofrece dos camas individuales, ideal para amigos o hermanos, y cuenta con una excelente ventilación natural.',
+    capacity: 2,
+    amenities: ['Wifi', 'Television', 'Agua caliente', '2 Camas']
+  },
+  { 
+    id: 7, 
+    title: 'Suite Quencio', 
+    price: 1600, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Espacio moderno y confortable con vista a la montaña.',
+    longDescription: 'Nuestra suite principal. Un espacio amplio que combina diseño contemporáneo con toques rústicos. Incluye cama King Size, sofá cama, comedor para dos personas, batas de baño de cortesía y la mejor vista panorámica del hotel.',
+    capacity: 4,
+    popular: true,
+    amenities: ['Wifi', 'Television', 'Minibar', 'Room-service', '1 Cama']
+  },
+  { 
+    id: 8, 
+    title: 'Morelia', 
+    price: 1500, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Elegancia en cantera rosa y amplitud digna de la capital.',
+    longDescription: 'Inspirada en la majestuosa arquitectura de Morelia, con muros con detalles en cantera rosa. Ofrece dos camas Queen Size, un amplio baño con doble lavabo y amenidades de lujo.',
+    capacity: 4,
+    amenities: ['Wifi', 'Television', '2 Camas']
+  },
+  { 
+    id: 9, 
+    title: 'Tacámbaro', 
+    price: 1350, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Frescura y vegetación, el balcón perfecto para tu descanso.',
+    longDescription: 'Una habitación que celebra el clima privilegiado de Tacámbaro. Rodeada de plantas ornamentales tanto en su interior como en su gran terraza privada. Cama King Size y sillones de lectura.',
+    capacity: 2,
+    amenities: ['Wifi', '1 Cama']
+  },
+  { 
+    id: 10, 
+    title: 'Uruapan', 
+    price: 1450, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Rodeada de naturaleza, inspirada en el Parque Nacional.',
+    longDescription: 'Siente la brisa y el sonido del agua. Esta habitación está ubicada en la zona más arbolada del hotel. Cuenta con detalles en cobre, cama King Size y ventanales insonorizados para un descanso profundo.',
+    capacity: 3,
+    popular: true,
+    amenities: ['Wifi', 'Television', '1 Cama']
+  },
+  { 
+    id: 11, 
+    title: 'Tlalpujahua', 
+    price: 1300, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Detalles acogedores como la villa de la eterna navidad.',
+    longDescription: 'Un espacio mágico con toques brillantes y espejos artesanales. Equipada con dos camas matrimoniales, iluminación cálida regulable y un baño revestido en azulejo tradicional.',
+    capacity: 4,
+    amenities: ['Wifi', 'Television', '2 Camas']
+  },
+  { 
+    id: 12, 
+    title: 'Cuitzeo', 
+    price: 1150, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Serenidad y reflejos de luz, un espacio para la paz interior.',
+    longDescription: 'Habitación luminosa con grandes espejos y texturas suaves. Ideal para relajarse después de un día de turismo. Ofrece una cama matrimonial muy cómoda y acceso rápido al área de alberca.',
+    capacity: 2,
+    amenities: ['Wifi', 'Television', '1 Cama']
+  },
+  { 
+    id: 13, 
+    title: 'Cuanajo', 
+    price: 1400, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Muebles tallados a mano y texturas rústicas de gran calidad.',
+    longDescription: 'Una verdadera exhibición de artesanía en madera. Todos los muebles de esta habitación fueron tallados a mano por artesanos locales. Cama King Size, ropero amplio y un ambiente sumamente cálido.',
+    capacity: 2,
+    amenities: ['Wifi', 'Television', '1 Cama']
+  },
+  { 
+    id: 14, 
+    title: 'Habitación 14', 
+    price: 1050, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Habitación estándar cómoda y accesible.',
+    longDescription: 'Nuestra opción más económica sin sacrificar calidad. Cama individual grande, escritorio, baño completo privado y todas las comodidades esenciales para viajeros de negocios o solitarios.',
+    capacity: 1,
+    amenities: ['Wifi', 'Television', 'Agua caliente', '1 Cama']
+  },
+  { 
+    id: 15, 
+    title: 'Habitación 15', 
+    price: 1100, 
+    images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], 
+    description: 'Habitación doble con todos los servicios esenciales.',
+    longDescription: 'Habitación estándar con dos camas individuales. Práctica, limpia y bien iluminada, con fácil acceso a la recepción y al restaurante del hotel.',
+    capacity: 2,
+    amenities: ['Wifi', 'Television', 'Toallas', '2 Camas']
+  }
+];
+
 export default function HomeClient({ bannerImages, featuredRooms, features }: HomeClientProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [localFeaturedRooms, setLocalFeaturedRooms] = useState<RoomData[]>(featuredRooms);
   // buscadorActive: true mientras algún campo tenga foco o un picker esté abierto.
   // Evita que el buscador desaparezca mientras el usuario interactúa con él.
   const [buscadorActive, setBuscadorActive] = useState(false);
@@ -88,6 +244,27 @@ export default function HomeClient({ bannerImages, featuredRooms, features }: Ho
   const [salida, setSalida] = useState('');
   const [showLlegada, setShowLlegada] = useState(false);
   const [showSalida, setShowSalida] = useState(false);
+
+  useEffect(() => {
+    const storedRooms = localStorage.getItem('rooms');
+    let parsedRooms: RoomData[] = [];
+    
+    if (storedRooms) {
+      try {
+        parsedRooms = JSON.parse(storedRooms);
+      } catch (err) {
+        console.error('Error al parsear habitaciones del localStorage', err);
+        parsedRooms = defaultRooms;
+      }
+    } else {
+      parsedRooms = defaultRooms;
+      localStorage.setItem('rooms', JSON.stringify(defaultRooms));
+    }
+    
+    const popularRooms = parsedRooms.filter((r: RoomData) => r.popular);
+    const topRooms = popularRooms.length > 0 ? popularRooms.slice(0, 3) : parsedRooms.slice(0, 3);
+    setLocalFeaturedRooms(topRooms);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsMounted(true), 400);
@@ -220,16 +397,18 @@ export default function HomeClient({ bannerImages, featuredRooms, features }: Ho
             </Link>
           </Reveal>
 
-          <div className="flex flex-wrap justify-center gap-6 md:gap-8">
-            {Array.from(new Map(featuredRooms.map(r => [r.id, r])).values()).map((room, i) => (
+          <div className="flex flex-wrap items-stretch justify-center gap-6 md:gap-8">
+            {Array.from(new Map(localFeaturedRooms.map(r => [r.id, r])).values()).map((room, i) => (
               <Reveal key={room.id} direction="up" delay={i * 100}
-                className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1.33rem)]">
+                className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1.33rem)] flex flex-col">
                 {/* RoomCard con onReserve → abre el modal */}
-                <RoomCard
-                  room={room}
-                  onReserve={setSelectedRoom}
-                  amenitiesList={amenitiesList}
-                />
+                <div className="flex-1 *:h-full">
+                  <RoomCard
+                    room={room}
+                    onReserve={setSelectedRoom}
+                    amenitiesList={amenitiesList}
+                  />
+                </div>
               </Reveal>
             ))}
           </div>

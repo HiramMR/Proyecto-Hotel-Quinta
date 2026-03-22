@@ -11,15 +11,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import Carousel from './Carousel';
 import DatePicker from './DatePicker';
 import { useAuth } from '../../lib/auth-context';
-import { supabase } from '../../lib/supabase';
-
-// Inicializar Stripe con la publishable key
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface AmenityItem { name: string; icon: React.ReactNode; }
 
@@ -242,67 +236,6 @@ function ReservationSummary({ room, llegada, salida, nights, total, stars }: {
   );
 }
 
-// ── Componente interno que usa los hooks de Stripe ──
-// Debe estar dentro del provider <Elements> para funcionar
-function StripePaymentForm({ clientSecret, reservationId, onSuccess, onError }: {
-  clientSecret: string;
-  reservationId: number;
-  onSuccess: () => void;
-  onError: (msg: string) => void;
-}) {
-  const stripe   = useStripe();
-  const elements = useElements();
-  const [paying, setPaying] = useState(false);
-
-  // ✅ handlePay es propio de este componente — no usa handleConfirm del padre
-  const handlePay = async () => {
-    if (!stripe || !elements) return;
-
-    setPaying(true);
-
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: window.location.href },
-      redirect: 'if_required',
-    });
-
-    if (error) {
-      onError(error.message ?? 'Error al procesar el pago.');
-      setPaying(false);
-      return;
-    }
-
-    if (paymentIntent?.status === 'succeeded') {
-      await fetch('/api/confirm-reservation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentIntentId: paymentIntent.id, reservationId }),
-      });
-      onSuccess();
-    }
-
-    setPaying(false);
-  };
-
-  return (
-    // ✅ Sin <form> — usamos div para evitar form anidado
-    <div>
-      <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
-        <PaymentElement />
-      </div>
-      {/* ✅ onClick={handlePay} — llama a su propio handler */}
-      <button type="button" onClick={handlePay} className="btn-copper w-full text-center"
-        disabled={!stripe || paying}
-        style={{ opacity: !stripe || paying ? 0.7 : 1 }}>
-        {paying ? 'Procesando pago...' : 'Pagar ahora'}
-      </button>
-      <p className="text-xs text-center mt-3" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
-        Pago seguro procesado por Stripe 🔒
-      </p>
-    </div>
-  );
-}
-
 export default function RoomModal({ room, llegada: llegadaProp, salida: salidaProp, onClose, amenitiesList }: RoomModalProps) {
   const { user, profile } = useAuth();
   const [step, setStep] = useState<'detail' | 'booking' | 'success'>('detail');
@@ -324,16 +257,18 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   const [blockedRanges, setBlockedRanges] = useState<{ from: string; to: string }[]>([]);
 
   useEffect(() => {
-    supabase
-      .from('reservations')
-      .select('fecha_llegada, fecha_salida')
-      .eq('room_id', room.id)
-      .in('estado', ['confirmada', 'pagada'])
-      .then(({ data }) => {
-        setBlockedRanges(
-          (data ?? []).map(r => ({ from: r.fecha_llegada, to: r.fecha_salida }))
+    const stored = localStorage.getItem('reservations');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        const roomRes = parsed.filter((r: any) =>
+          r.room_id === room.id && ['confirmada', 'pagada'].includes(r.estado)
         );
-      });
+        setBlockedRanges(roomRes.map((r: any) => ({ from: r.fecha_llegada, to: r.fecha_salida })));
+      } catch (err) {
+        console.error(err);
+      }
+    }
   }, [room.id]);
 
   const nights = calcNights(llegada, salida);
@@ -389,30 +324,28 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     setSavingError('');
 
     try {
-      const res = await fetch('/api/create-reservation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id:       user.id,
-          room_id:       room.id,
+      setTimeout(() => {
+        const newRes = {
+          id: Date.now(),
+          user_id: user.id,
+          room_id: room.id,
           fecha_llegada: llegada,
-          fecha_salida:  salida,
-          noches:        nights,
-          total:         total,
-          metodo_pago:   selectedPayment,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setSavingError(data.error ?? 'No se pudo guardar la reservación. Intenta de nuevo.');
+          fecha_salida: salida,
+          noches: nights,
+          total: total,
+          metodo_pago: selectedPayment,
+          estado: 'confirmada',
+          created_at: new Date().toISOString(),
+          profiles: { nombre: loggedUser.nombre, apellido: '', telefono: '' },
+          rooms: { title: room.title, images: room.images }
+        };
+        const stored = localStorage.getItem('reservations');
+        const parsed = stored ? JSON.parse(stored) : [];
+        parsed.push(newRes);
+        localStorage.setItem('reservations', JSON.stringify(parsed));
         setSaving(false);
-        return;
-      }
-
-      setSaving(false);
-      setStep('success');
+        setStep('success');
+      }, 1000);
     } catch {
       setSavingError('Error de conexión. Intenta de nuevo.');
       setSaving(false);
@@ -425,70 +358,28 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     setSaving(true);
     setSavingError('');
 
-    // INSERT sin .select() para evitar que la policy SELECT (get_user_role) bloquee la operación
-    const { error: resError } = await supabase
-      .from('reservations')
-      .insert({
-        user_id:       user.id,
-        room_id:       room.id,
+    setTimeout(() => {
+      const newRes = {
+        id: Date.now(),
+        user_id: user.id,
+        room_id: room.id,
         fecha_llegada: llegada,
-        fecha_salida:  salida,
-        noches:        nights,
-        total:         total,
-        metodo_pago:   'card',
-        estado:        'confirmada',
-      });
-
-    if (resError) {
-      setSavingError('No se pudo crear la reservación. Intenta de nuevo.');
+        fecha_salida: salida,
+        noches: nights,
+        total: total,
+        metodo_pago: 'card',
+        estado: 'pagada',
+        created_at: new Date().toISOString(),
+        profiles: { nombre: loggedUser.nombre, apellido: '', telefono: '' },
+        rooms: { title: room.title, images: room.images }
+      };
+      const stored = localStorage.getItem('reservations');
+      const parsed = stored ? JSON.parse(stored) : [];
+      parsed.push(newRes);
+      localStorage.setItem('reservations', JSON.stringify(parsed));
       setSaving(false);
-      return;
-    }
-
-    // Obtener el id de la reservación recién creada en consulta separada
-    const { data: resData, error: fetchError } = await supabase
-      .from('reservations')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('room_id', room.id)
-      .eq('fecha_llegada', llegada)
-      .eq('fecha_salida', salida)
-      .order('id', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (fetchError || !resData) {
-      setSavingError('No se pudo obtener la reservación. Intenta de nuevo.');
-      setSaving(false);
-      return;
-    }
-
-    setReservationId(resData.id);
-
-    const res = await fetch('/api/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount:   total,
-        currency: 'mxn',
-        metadata: {
-          reservation_id: String(resData.id),
-          user_id:        user.id,
-          room_id:        String(room.id),
-        },
-      }),
-    });
-
-    const { clientSecret: cs, error: stripeError } = await res.json();
-
-    if (stripeError) {
-      setSavingError('Error al preparar el pago. Intenta de nuevo.');
-      setSaving(false);
-      return;
-    }
-
-    setClientSecret(cs);
-    setSaving(false);
+      setStep('success');
+    }, 1500);
   };
 
   return (
@@ -779,23 +670,19 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                     {/* ── TARJETA: Formulario real de Stripe ── */}
                     {selectedPayment === 'card' && (
                       <div className="mb-4">
-                        {!clientSecret ? (
-                          <button type="button" onClick={handlePrepareCardPayment}
-                            className="btn-copper w-full text-center"
-                            disabled={saving}
-                            style={{ opacity: saving ? 0.7 : 1 }}>
-                            {saving ? 'Preparando pago...' : 'Continuar con tarjeta →'}
-                          </button>
-                        ) : (
-                          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#C8813A', borderRadius: '8px' } } }}>
-                            <StripePaymentForm
-                              clientSecret={clientSecret}
-                              reservationId={reservationId!}
-                              onSuccess={() => setStep('success')}
-                              onError={(msg) => setSavingError(msg)}
-                            />
-                          </Elements>
-                        )}
+                        <div className="p-4 rounded-lg mb-4 space-y-3" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+                          <input type="text" className="input-warm" placeholder="Número de tarjeta (Simulado)" />
+                          <div className="flex gap-2">
+                            <input type="text" className="input-warm w-1/2" placeholder="MM/YY" />
+                            <input type="text" className="input-warm w-1/2" placeholder="CVC" />
+                          </div>
+                        </div>
+                        <button type="button" onClick={handlePrepareCardPayment}
+                          className="btn-copper w-full text-center"
+                          disabled={saving}
+                          style={{ opacity: saving ? 0.7 : 1 }}>
+                          {saving ? 'Procesando pago...' : 'Pagar ahora'}
+                        </button>
                       </div>
                     )}
 
