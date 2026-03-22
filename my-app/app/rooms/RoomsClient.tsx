@@ -211,8 +211,12 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
     <main style={{ backgroundColor: 'var(--cream)', minHeight: '100vh', overflowX: 'hidden' }}>
 
       {/* ── HERO ── */}
-      <section className="flex flex-col grain-overlay relative"
-        style={{ height: '100vh', background: 'linear-gradient(135deg, var(--charcoal) 0%, var(--wood-dark) 100%)' }}>
+      <section className="flex flex-col grain-overlay relative overflow-hidden"
+        style={{ height: '100vh', backgroundColor: 'var(--wood-dark)' }}>
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(200,129,58,0.3) 0%, transparent 65%)' }} />
+        <div className="absolute inset-0 pointer-events-none opacity-5"
+          style={{ backgroundImage: 'repeating-linear-gradient(45deg, var(--copper) 0, var(--copper) 1px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }} />
         <div className="flex flex-col items-center justify-center pt-24 pb-6 text-center relative z-10">
           <p className={`text-xs uppercase tracking-[0.3em] mb-3 transition-all duration-700 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)', transitionDelay: '0ms' }}>
@@ -222,14 +226,10 @@ function RoomsContent({ allRooms }: RoomsClientProps) {
             style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem,6vw,5rem)', fontWeight: 300, color: 'var(--cream)', transitionDelay: '150ms' }}>
             Nuestras <em style={{ fontWeight: 400 }}>Habitaciones</em>
           </h1>
-          <div className={`flex items-center gap-4 mt-5 transition-all duration-700 ${isMounted ? 'opacity-60 translate-y-0' : 'opacity-0 translate-y-3'}`}
-            style={{ transitionDelay: '300ms' }}>
-            <div className="h-px w-12" style={{ background: 'linear-gradient(to right, transparent, var(--copper))' }} />
-            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--copper)' }} />
-            <div className="h-px w-12" style={{ background: 'linear-gradient(to left, transparent, var(--copper))' }} />
-          </div>
+          <div className={`mt-5 h-px transition-all duration-1000 ${isMounted ? 'w-24 opacity-100' : 'w-0 opacity-0'}`}
+            style={{ backgroundColor: 'var(--copper)', transitionDelay: '400ms' }} />
         </div>
-        <div className={`flex-1 min-h-0 transition-all duration-1000 ${isMounted ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
+        <div className={`flex-1 min-h-0 transition-all duration-1000 relative z-10 ${isMounted ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
           style={{ transitionDelay: '400ms' }}>
           <Carousel slides={roomSlides} />
         </div>
