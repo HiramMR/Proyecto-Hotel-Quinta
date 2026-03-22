@@ -104,9 +104,9 @@ const emptyRoom: Omit<Room, 'id'> = {
 }
 
 const defaultUsers: UserProfile[] = [
-  { id: '1', nombre: 'Admin', apellido: 'Sistema', email: 'admin@quintadalam.com', password: 'admin', telefono: '555-0000', role: 'admin', created_at: new Date().toISOString() },
-  { id: '2', nombre: 'Juan', apellido: 'Pérez', email: 'juan@example.com', password: 'password123', telefono: '555-1234', role: 'user', created_at: new Date().toISOString() },
-  { id: '3', nombre: 'María', apellido: 'Gómez', email: 'maria@example.com', password: 'password123', telefono: '555-5678', role: 'user', created_at: new Date().toISOString() }
+  { id: '1', nombre: 'Admin', apellido: 'Sistema', email: 'admin@quintadalam.com', password: 'Admin123', telefono: '555-0000', role: 'admin', created_at: new Date().toISOString() },
+  { id: '2', nombre: 'Juan', apellido: 'Pérez', email: 'juan@example.com', password: 'Password123', telefono: '555-1234', role: 'user', created_at: new Date().toISOString() },
+  { id: '3', nombre: 'María', apellido: 'Gómez', email: 'maria@example.com', password: 'Password123', telefono: '555-5678', role: 'user', created_at: new Date().toISOString() }
 ]
 
 const defaultReservations: Reservation[] = [
