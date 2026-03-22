@@ -17,6 +17,8 @@ import { useAuth } from '../../lib/auth-context'
 
 interface Reservation {
   id: number
+  user_id?: string
+  room_id?: number
   fecha_llegada: string
   fecha_salida: string
   noches: number
@@ -28,7 +30,7 @@ interface Reservation {
   refund_id: string | null
   refund_requested: boolean | null
   profiles: { nombre: string | null; apellido: string | null; telefono: string | null }
-  rooms: { title: string; images: string[] }
+  rooms: { title: string; images: string[], stars?: number }
 }
 
 interface UserProfile {
@@ -109,34 +111,64 @@ const defaultUsers: UserProfile[] = [
 
 const defaultReservations: Reservation[] = [
   {
-    id: 1,
-    fecha_llegada: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0],
-    noches: 5,
-    total: 7250,
-    metodo_pago: 'card',
-    estado: 'confirmada',
-    created_at: new Date().toISOString(),
-    payment_intent_id: null,
-    refund_id: null,
-    refund_requested: false,
+    id: 1, user_id: '2', room_id: 1,
+    fecha_llegada: new Date(Date.now() - 86400000 * 20).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
+    noches: 5, total: 7250, metodo_pago: 'card', estado: 'confirmada',
+    created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: false,
     profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'] }
+    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
   },
   {
-    id: 2,
-    fecha_llegada: new Date(Date.now() + 86400000 * 15).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() + 86400000 * 17).toISOString().split('T')[0],
-    noches: 2,
-    total: 2600,
-    metodo_pago: 'transfer',
-    estado: 'pagada',
-    created_at: new Date().toISOString(),
-    payment_intent_id: null,
-    refund_id: null,
-    refund_requested: false,
+    id: 2, user_id: '2', room_id: 2,
+    fecha_llegada: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 13).toISOString().split('T')[0],
+    noches: 2, total: 2600, metodo_pago: 'transfer', estado: 'pagada',
+    created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: false,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Paracho', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
+  },
+  {
+    id: 3, user_id: '2', room_id: 3,
+    fecha_llegada: new Date(Date.now() - 86400000 * 10).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 8).toISOString().split('T')[0],
+    noches: 2, total: 2400, metodo_pago: 'cash', estado: 'completada',
+    created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: false,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Yunuén', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 5 }
+  },
+  {
+    id: 4, user_id: '2', room_id: 4,
+    fecha_llegada: new Date(Date.now() - 86400000 * 5).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 3).toISOString().split('T')[0],
+    noches: 2, total: 3000, metodo_pago: 'transfer', estado: 'cancelada',
+    created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: true,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Pátzcuaro', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
+  },
+  {
+    id: 5, user_id: '2', room_id: 5,
+    fecha_llegada: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0],
+    noches: 1, total: 1100, metodo_pago: 'card', estado: 'reembolsada',
+    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    payment_intent_id: null, refund_id: 're_123', refund_requested: false,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Coeneo', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
+  },
+  {
+    id: 6, user_id: '3', room_id: 1,
+    fecha_llegada: new Date(Date.now() - 86400000 * 30).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 27).toISOString().split('T')[0],
+    noches: 3, total: 4350, metodo_pago: 'card', estado: 'completada',
+    created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: false,
     profiles: { nombre: 'María', apellido: 'Gómez', telefono: '555-5678' },
-    rooms: { title: 'Paracho', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'] }
+    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
   }
 ]
 

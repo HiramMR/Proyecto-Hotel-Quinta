@@ -245,6 +245,17 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   const [saving, setSaving] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviews, setReviews] = useState<any[]>([]);
+  useEffect(() => {
+    const stored = localStorage.getItem('room_reviews');
+    if (stored) {
+      try { setReviews(JSON.parse(stored)); } catch (e) {}
+    }
+  }, []);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // ── Fechas editables desde el modal ──
   const [llegada, setLlegada] = useState(llegadaProp);
   const [salida, setSalida]   = useState(salidaProp);
@@ -273,7 +284,10 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
 
   const nights = calcNights(llegada, salida);
   const total  = room.price * nights;
-  const stars  = room.stars ?? 4;
+  const allRoomReviews = reviews.filter(r => r.room_id === room.id);
+  const stars = allRoomReviews.length > 0 
+    ? Math.round(allRoomReviews.reduce((sum, rev) => sum + rev.rating, 0) / allRoomReviews.length) 
+    : room.stars ?? 4;
 
   const loggedUser = {
     nombre: profile?.nombre
@@ -382,6 +396,13 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     }, 1500);
   };
 
+  // Desplazar al inicio del modal únicamente cuando se cambia de paso
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [step]);
+
   return (
     <div
       className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-8"
@@ -415,7 +436,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
           </svg>
         </button>
 
-        <div style={{ maxHeight: '92vh', overflowY: 'auto' }} ref={el => { if (el) el.scrollTop = 0; }}>
+        <div style={{ maxHeight: '92vh', overflowY: 'auto' }} ref={scrollContainerRef}>
 
           {/* ══════════════════════════════════════════
               PASO 1: DETALLE
@@ -487,6 +508,52 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                     </div>
                   </div>
                 )}
+
+              {/* ── SECCIÓN DE VALORACIONES ── */}
+              {(() => {
+                const roomReviews = reviews.filter(r => r.room_id === room.id && r.comment);
+                if (roomReviews.length === 0) return null;
+                const rev = roomReviews[reviewIndex] || roomReviews[0];
+                return (
+                  <div className="mb-6 relative">
+                    <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Valoraciones de huéspedes</p>
+                    <div className="p-6 rounded-xl flex flex-col items-center text-center relative transition-all" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)', minHeight: '150px' }}>
+                      <div className="flex gap-1 mb-3">
+                        {[1,2,3,4,5].map(star => (
+                          <svg key={star} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={star <= rev.rating ? "currentColor" : "none"} stroke="currentColor" className="w-4 h-4" style={{ color: 'var(--copper)' }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354l-4.543 2.826c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                          </svg>
+                        ))}
+                      </div>
+                      <p className="text-sm italic leading-relaxed mb-3 px-8" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>"{rev.comment}"</p>
+                      <p className="text-xs font-semibold mt-auto" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>- {rev.user_name || 'Huésped'}</p>
+                      <span className="text-[10px] mt-1" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
+                        {new Date(rev.date).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' })}
+                      </span>
+                      
+                      {/* Flechas del carrusel */}
+                      {roomReviews.length > 1 && (
+                        <>
+                          <button onClick={() => setReviewIndex(i => i === 0 ? roomReviews.length - 1 : i - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors" style={{ color: 'var(--charcoal)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(44,36,32,0.06)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                          </button>
+                          <button onClick={() => setReviewIndex(i => (i + 1) % roomReviews.length)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors" style={{ color: 'var(--charcoal)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(44,36,32,0.06)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {/* Indicadores */}
+                    {roomReviews.length > 1 && (
+                      <div className="flex justify-center gap-1.5 mt-3">
+                        {roomReviews.map((_, idx) => (
+                          <button key={idx} onClick={() => setReviewIndex(idx)} className="rounded-full transition-all" style={{ width: idx === reviewIndex ? '1.25rem' : '0.4rem', height: '0.4rem', backgroundColor: idx === reviewIndex ? 'var(--copper)' : 'rgba(44,36,32,0.15)' }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
                 {/* ── SELECTOR DE FECHAS CON CALENDARIO ── */}
                 <div className="mb-6 p-5 rounded-xl"

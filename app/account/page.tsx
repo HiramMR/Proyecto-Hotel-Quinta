@@ -13,6 +13,7 @@ import Link from 'next/link'
 
 interface Reservation {
   id: number
+  user_id?: string
   room_id: number
   fecha_llegada: string
   fecha_salida: string
@@ -22,7 +23,10 @@ interface Reservation {
   estado: string
   created_at: string
   payment_intent_id: string | null
+  refund_id?: string | null
+  refund_requested?: boolean
   comprobante_url: string | null
+  profiles?: { nombre: string | null; apellido: string | null; telefono: string | null }
   rooms: {
     title: string
     images: string[]
@@ -56,6 +60,75 @@ const estadoTextColor: Record<string, string> = {
   completada: '#3ca050',
   reembolsada: 'var(--text-muted)',
 }
+
+const defaultReservations: Reservation[] = [
+  {
+    id: 1, user_id: '2', room_id: 1,
+    fecha_llegada: new Date(Date.now() - 86400000 * 20).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
+    noches: 5, total: 7250, metodo_pago: 'card', estado: 'confirmada',
+    created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: false,
+    comprobante_url: null,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
+  },
+  {
+    id: 2, user_id: '2', room_id: 2,
+    fecha_llegada: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 13).toISOString().split('T')[0],
+    noches: 2, total: 2600, metodo_pago: 'transfer', estado: 'pagada',
+    created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: false,
+    comprobante_url: 'uploaded',
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Paracho', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
+  },
+  {
+    id: 3, user_id: '2', room_id: 3,
+    fecha_llegada: new Date(Date.now() - 86400000 * 10).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 8).toISOString().split('T')[0],
+    noches: 2, total: 2400, metodo_pago: 'cash', estado: 'completada',
+    created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: false,
+    comprobante_url: null,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Yunuén', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 5 }
+  },
+  {
+    id: 4, user_id: '2', room_id: 4,
+    fecha_llegada: new Date(Date.now() - 86400000 * 5).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 3).toISOString().split('T')[0],
+    noches: 2, total: 3000, metodo_pago: 'transfer', estado: 'cancelada',
+    created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: true,
+    comprobante_url: null,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Pátzcuaro', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
+  },
+  {
+    id: 5, user_id: '2', room_id: 5,
+    fecha_llegada: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0],
+    noches: 1, total: 1100, metodo_pago: 'card', estado: 'reembolsada',
+    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    payment_intent_id: null, refund_id: 're_123', refund_requested: false,
+    comprobante_url: null,
+    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
+    rooms: { title: 'Coeneo', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
+  },
+  {
+    id: 6, user_id: '3', room_id: 1,
+    fecha_llegada: new Date(Date.now() - 86400000 * 30).toISOString().split('T')[0],
+    fecha_salida: new Date(Date.now() - 86400000 * 27).toISOString().split('T')[0],
+    noches: 3, total: 4350, metodo_pago: 'card', estado: 'completada',
+    created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
+    payment_intent_id: null, refund_id: null, refund_requested: false,
+    comprobante_url: null,
+    profiles: { nombre: 'María', apellido: 'Gómez', telefono: '555-5678' },
+    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
+  }
+]
 
 // ── Formulario de edición de perfil ──
 function ProfileForm({ user, profile, onSaved }: {
@@ -289,6 +362,10 @@ export default function AccountPage() {
   const [uploadingId, setUploadingId] = useState<number | null>(null)
   const [uploadResult, setUploadResult] = useState<{ id: number; success: boolean; message: string } | null>(null)
 
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewingId, setReviewingId] = useState<number | null>(null)
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+
   // Redirigir si no hay sesión
   useEffect(() => {
     if (!loading && !user) router.push('/login')
@@ -306,10 +383,20 @@ export default function AccountPage() {
         setReservations(userRes)
       } catch (e) { console.error(e) }
     } else {
-      setReservations([])
+      localStorage.setItem('reservations', JSON.stringify(defaultReservations))
+      const userRes = defaultReservations.filter((r: any) => r.user_id === user.id)
+      userRes.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      setReservations(userRes)
     }
     setLoadingRes(false)
   }, [user])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('room_reviews')
+    if (stored) {
+      try { setReviews(JSON.parse(stored)) } catch (e) {}
+    }
+  }, [])
 
   // ── Verifica si faltan más de 48h para el check-in ──
   const canCancel = (fechaLlegada: string) => {
@@ -640,8 +727,71 @@ export default function AccountPage() {
                             </Link>
                           </div>
 
+                          {/* Valorar habitación si ya terminó */}
+                          {(() => {
+                            const isFinished = res.estado === 'completada' || (['confirmada', 'pagada'].includes(res.estado) && res.fecha_salida < new Date().toISOString().split('T')[0]);
+                            const existingReview = reviews.find(r => r.reservation_id === res.id);
+                            
+                            if (isFinished && !existingReview) {
+                              if (reviewingId === res.id) {
+                                return (
+                                  <div className="p-4 rounded-xl mt-2 space-y-3" style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--copper)' }}>
+                                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>Valorar habitación</p>
+                                    <div className="flex gap-2">
+                                      {[1,2,3,4,5].map(star => (
+                                        <button key={star} onClick={() => setReviewForm({...reviewForm, rating: star})}>
+                                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={star <= reviewForm.rating ? "currentColor" : "none"} stroke="currentColor" className="w-6 h-6" style={{ color: 'var(--copper)' }}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354l-4.543 2.826c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                                          </svg>
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <textarea className="input-warm text-xs resize-none" rows={3} placeholder="¿Qué te pareció tu estancia?" value={reviewForm.comment} onChange={e => setReviewForm({...reviewForm, comment: e.target.value})} />
+                                    <div className="flex gap-2">
+                                      <button className="btn-copper flex-1 py-2 text-[11px]" onClick={() => {
+                                        const stored = localStorage.getItem('room_reviews') || '[]'
+                                        const parsed = JSON.parse(stored)
+                                        parsed.push({ reservation_id: res.id, room_id: res.room_id, user_id: user?.id, user_name: displayName, rating: reviewForm.rating, comment: reviewForm.comment, date: new Date().toISOString() })
+                                        localStorage.setItem('room_reviews', JSON.stringify(parsed))
+                                        setReviews(parsed)
+                                        setReviewingId(null)
+                                      }}>Enviar valoración</button>
+                                      <button className="flex-1 text-[11px] font-semibold py-2 rounded-lg transition-colors hover:bg-(--cream-dark)" style={{ border: '1px solid var(--stone)', color: 'var(--charcoal)' }} onClick={() => setReviewingId(null)}>Cancelar</button>
+                                    </div>
+                                  </div>
+                                )
+                              }
+                              return (
+                                <div className="p-4 rounded-xl mt-2 flex justify-between items-center" style={{ backgroundColor: 'rgba(200,129,58,0.06)', border: '1px solid rgba(200,129,58,0.2)' }}>
+                                  <div>
+                                    <p className="text-xs font-semibold mb-1" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>🌟 Valora tu estancia</p>
+                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Cuéntanos qué te pareció esta habitación.</p>
+                                  </div>
+                                  <button className="btn-copper text-[10px] px-3 py-1.5" onClick={() => { setReviewingId(res.id); setReviewForm({ rating: 5, comment: '' }) }}>Valorar</button>
+                                </div>
+                              )
+                            } else if (existingReview) {
+                              return (
+                                <div className="p-4 rounded-xl mt-2" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <p className="text-xs font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>Tu valoración</p>
+                                    <div className="flex gap-0.5">
+                                      {[1,2,3,4,5].map(star => (
+                                        <svg key={star} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={star <= existingReview.rating ? "currentColor" : "none"} stroke="currentColor" className="w-3.5 h-3.5" style={{ color: 'var(--copper)' }}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354l-4.543 2.826c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                                        </svg>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  {existingReview.comment && <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>"{existingReview.comment}"</p>}
+                                </div>
+                              )
+                            }
+                            return null;
+                          })()}
+
                           {/* Botón cancelar */}
-                          {(res.estado === 'confirmada' || res.estado === 'pagada') && (
+                          {(res.estado === 'confirmada' || res.estado === 'pagada') && res.fecha_salida >= new Date().toISOString().split('T')[0] && (
                             <div className="pt-2">
                               {canCancel(res.fecha_llegada) ? (
                                 <button
