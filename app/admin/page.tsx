@@ -803,14 +803,14 @@ export default function AdminPage() {
                         )}
                       </div>
                     </div>
-                    <p className="text-sm italic text-[var(--text-muted)] flex-1 line-clamp-4">"{t.texto}"</p>
+                    <p className="text-sm italic text-(--text-muted) flex-1 line-clamp-4">"{t.texto}"</p>
                     <div className="flex gap-2 mt-2 pt-3" style={{ borderTop: '1px solid var(--stone)' }}>
                       {t.status === 'pending' && (
-                        <button onClick={() => handleApproveTestimonio(t.id)} className="flex-1 py-1.5 text-xs font-semibold bg-[var(--copper)] text-white rounded-lg hover:bg-[var(--copper-dark)] transition-colors">
+                        <button onClick={() => handleApproveTestimonio(t.id)} className="flex-1 py-1.5 text-xs font-semibold bg-(--copper) text-white rounded-lg hover:bg-(--copper-dark) transition-colors">
                           Aprobar
                         </button>
                       )}
-                      <button onClick={() => handleRejectTestimonio(t.id)} className="flex-1 py-1.5 text-xs font-semibold bg-transparent border border-[var(--text-light)] text-[var(--text-muted)] rounded-lg hover:bg-[var(--stone)] transition-colors">
+                      <button onClick={() => handleRejectTestimonio(t.id)} className="flex-1 py-1.5 text-xs font-semibold bg-transparent border border-(--text-light) text-(--text-muted) rounded-lg hover:bg-(--stone) transition-colors">
                         {t.status === 'pending' ? 'Rechazar' : 'Eliminar'}
                       </button>
                     </div>
