@@ -502,7 +502,11 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                       <DatePicker
                         label="Fecha de llegada"
                         value={llegada}
-                        onChange={v => { setLlegada(v); setShowLlegada(false); }}
+                        onChange={v => { 
+                          setLlegada(v); 
+                          setShowLlegada(false); 
+                          if (salida && v >= salida) setSalida('');
+                        }}
                         isOpen={showLlegada}
                         onToggle={() => {
                           const opening = !showLlegada;
@@ -523,6 +527,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                         value={salida}
                         onChange={v => { setSalida(v); setShowSalida(false); }}
                         isOpen={showSalida}
+                        minDate={llegada}
                         onToggle={() => {
                           const opening = !showSalida;
                           setShowSalida(opening);

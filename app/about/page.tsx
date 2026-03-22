@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../../lib/auth-context';
 
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
@@ -39,45 +40,121 @@ function Reveal({ children, delay = 0, direction = 'up', className = '' }: {
   );
 }
 
+interface Testimonio {
+  id: string;
+  user_id?: string;
+  nombre: string;
+  ciudad: string;
+  estrellas: number;
+  texto: string;
+  inicial: string;
+  status: 'approved' | 'pending';
+}
+
+const defaultTestimonios: Testimonio[] = [
+  {
+    id: '1',
+    nombre: 'Sofía Morales',
+    ciudad: 'Ciudad de México',
+    estrellas: 5,
+    texto: 'Una experiencia que no olvidaré. La habitación de Pátzcuaro tenía una vista increíble al manantial y cada detalle reflejaba el alma de Michoacán. Se siente como estar en casa, pero mejor.',
+    inicial: 'S',
+    status: 'approved',
+  },
+  {
+    id: '2',
+    nombre: 'Andrés y Valeria Castro',
+    ciudad: 'Guadalajara',
+    estrellas: 5,
+    texto: 'Fuimos por un fin de semana y nos quedamos con ganas de más. La tranquilidad de Quencio, la calidez del equipo y la belleza del lugar nos conquistaron desde el primer momento.',
+    inicial: 'A',
+    status: 'approved',
+  },
+  {
+    id: '3',
+    nombre: 'Roberto Sánchez',
+    ciudad: 'Monterrey',
+    estrellas: 5,
+    texto: 'Llegué buscando descanso y encontré mucho más: una historia detrás de cada habitación, un paisaje que te calma el alma y una familia que te recibe con el corazón abierto.',
+    inicial: 'R',
+    status: 'approved',
+  },
+  {
+    id: '4',
+    nombre: 'Familia Gutiérrez',
+    ciudad: 'Morelia',
+    estrellas: 5,
+    texto: 'Llevamos a nuestros hijos a conocer Quinta Dalam y fue una lección de historia, arte y tradición michoacana. Cada habitación es un mundo distinto. ¡Volvemos pronto!',
+    inicial: 'F',
+    status: 'approved',
+  },
+];
+
 export default function AboutPage() {
+  const { user, profile, isAdmin } = useAuth();
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  
+  const [testimonios, setTestimonios] = useState<Testimonio[]>([]);
+  const [newTestimonio, setNewTestimonio] = useState({ texto: '', ciudad: '', estrellas: 5 });
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [existingTestimonioId, setExistingTestimonioId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setIsMounted(true), 200);
+    
+    const stored = localStorage.getItem('testimonios');
+    if (stored) {
+      setTestimonios(JSON.parse(stored));
+    } else {
+      localStorage.setItem('testimonios', JSON.stringify(defaultTestimonios));
+      setTestimonios(defaultTestimonios);
+    }
+    
     return () => clearTimeout(t);
   }, []);
 
-  const testimonios = [
-    {
-      nombre: 'Sofía Morales',
-      ciudad: 'Ciudad de México',
-      estrellas: 5,
-      texto: 'Una experiencia que no olvidaré. La habitación de Pátzcuaro tenía una vista increíble al manantial y cada detalle reflejaba el alma de Michoacán. Se siente como estar en casa, pero mejor.',
-      inicial: 'S',
-    },
-    {
-      nombre: 'Andrés y Valeria Castro',
-      ciudad: 'Guadalajara',
-      estrellas: 5,
-      texto: 'Fuimos por un fin de semana y nos quedamos con ganas de más. La tranquilidad de Quencio, la calidez del equipo y la belleza del lugar nos conquistaron desde el primer momento.',
-      inicial: 'A',
-    },
-    {
-      nombre: 'Roberto Sánchez',
-      ciudad: 'Monterrey',
-      estrellas: 5,
-      texto: 'Llegué buscando descanso y encontré mucho más: una historia detrás de cada habitación, un paisaje que te calma el alma y una familia que te recibe con el corazón abierto.',
-      inicial: 'R',
-    },
-    {
-      nombre: 'Familia Gutiérrez',
-      ciudad: 'Morelia',
-      estrellas: 5,
-      texto: 'Llevamos a nuestros hijos a conocer Quinta Dalam y fue una lección de historia, arte y tradición michoacana. Cada habitación es un mundo distinto. ¡Volvemos pronto!',
-      inicial: 'F',
-    },
-  ];
+  useEffect(() => {
+    if (user && testimonios.length > 0 && !existingTestimonioId) {
+      const existing = testimonios.find(t => t.user_id === user.id);
+      if (existing) {
+        setExistingTestimonioId(existing.id);
+        setNewTestimonio({ texto: existing.texto, ciudad: existing.ciudad, estrellas: existing.estrellas });
+      }
+    }
+  }, [user, testimonios, existingTestimonioId]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile || !user) return;
+    
+    const testimonio: Testimonio = {
+      id: existingTestimonioId || Date.now().toString(),
+      user_id: user.id,
+      nombre: (profile.nombre + ' ' + (profile.apellido || '')).trim() || 'Huésped',
+      ciudad: newTestimonio.ciudad || 'Huésped verificado',
+      estrellas: newTestimonio.estrellas,
+      texto: newTestimonio.texto,
+      inicial: profile.nombre ? profile.nombre[0].toUpperCase() : 'H',
+      status: 'pending',
+    };
+    
+    let updated;
+    if (existingTestimonioId) {
+      updated = testimonios.map(t => t.id === existingTestimonioId ? testimonio : t);
+    } else {
+      updated = [testimonio, ...testimonios];
+    }
+
+    setTestimonios(updated);
+    localStorage.setItem('testimonios', JSON.stringify(updated));
+    
+    setSubmitSuccess(true);
+    setExistingTestimonioId(testimonio.id);
+    setTimeout(() => setSubmitSuccess(false), 4000);
+  };
+
+  const approvedTestimonios = testimonios.filter(t => t.status === 'approved');
 
   return (
     <main style={{ backgroundColor: 'var(--cream)', minHeight: '100vh' }}>
@@ -293,8 +370,8 @@ export default function AboutPage() {
             </h2>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {testimonios.map((t, i) => (
-              <Reveal key={i} direction="up" delay={i * 100}>
+            {approvedTestimonios.map((t, i) => (
+              <Reveal key={t.id || i} direction="up" delay={i * 100}>
                 <div className="p-6 h-full transition-all duration-300"
                   style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', borderRadius: '4px 20px 4px 20px' }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)'}
@@ -328,11 +405,82 @@ export default function AboutPage() {
           </div>
 
           {/* Nota de testimonios de ejemplo */}
-          <Reveal direction="up" delay={200}>
-            <p className="text-xs text-center mt-10 italic" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
-              * Testimonios de ejemplo. Próximamente compartiremos las experiencias reales de nuestros primeros huéspedes.
-            </p>
+          {approvedTestimonios.length <= 4 && (
+            <Reveal direction="up" delay={200}>
+              <p className="text-xs text-center mt-10 italic" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
+                * Testimonios de ejemplo. Próximamente compartiremos las experiencias reales de nuestros primeros huéspedes.
+              </p>
+            </Reveal>
+          )}
+
+          {/* Formulario para dejar testimonio */}
+          <Reveal direction="up" delay={150}>
+            <div className="mt-16 max-w-2xl mx-auto p-8" style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', borderRadius: '4px 24px 4px 24px', boxShadow: 'var(--shadow-md)' }}>
+              <h3 className="font-display text-2xl text-center mb-6" style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+                {existingTestimonioId ? 'Edita tu testimonio' : 'Comparte tu experiencia'}
+              </h3>
+              
+              {user ? (
+                submitSuccess ? (
+                  <div className="text-center p-6 bg-[rgba(200,129,58,0.1)] rounded-xl border border-(--copper)">
+                    <p className="text-(--copper) font-semibold mb-2">
+                      {existingTestimonioId ? '¡Testimonio actualizado!' : '¡Gracias por tu testimonio!'}
+                    </p>
+                    <p className="text-sm text-(--text-muted)">Tu reseña ha sido guardada y está en espera de aprobación por parte del administrador.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-widest mb-2 text-(--text-muted) font-semibold">Calificación</label>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setNewTestimonio({ ...newTestimonio, estrellas: star })}
+                            className="transition-transform hover:scale-110"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={star <= newTestimonio.estrellas ? "currentColor" : "none"} stroke="currentColor" className="w-8 h-8" style={{ color: 'var(--copper)' }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354l-4.543 2.826c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-widest mb-2 text-(--text-muted) font-semibold">Ciudad de origen (opcional)</label>
+                      <input
+                        type="text"
+                        value={newTestimonio.ciudad}
+                        onChange={e => setNewTestimonio({ ...newTestimonio, ciudad: e.target.value })}
+                        className="input-warm w-full"
+                        placeholder="Ej. Morelia, Michoacán"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-widest mb-2 text-(--text-muted) font-semibold">Tu reseña</label>
+                      <textarea
+                        required
+                        value={newTestimonio.texto}
+                        onChange={e => setNewTestimonio({ ...newTestimonio, texto: e.target.value })}
+                        className="input-warm w-full min-h-30 resize-none"
+                        placeholder="Cuéntanos cómo fue tu estadía..."
+                      />
+                    </div>
+                    <button type="submit" className="btn-copper mt-2 w-full">
+                      {existingTestimonioId ? 'Actualizar testimonio' : 'Enviar testimonio'}
+                    </button>
+                  </form>
+                )
+              ) : (
+                <div className="text-center p-6 bg-[rgba(245,240,232,0.5)] rounded-xl border border-(--stone)">
+                  <p className="text-sm text-(--text-muted) mb-4">Inicia sesión con tu cuenta para poder compartir tu experiencia con nosotros.</p>
+                  <a href="/login" className="btn-copper inline-block text-xs">Iniciar Sesión</a>
+                </div>
+              )}
+            </div>
           </Reveal>
+
         </div>
       </section>
 

@@ -343,7 +343,11 @@ export default function HomeClient({ bannerImages, featuredRooms, features }: Ho
               <DatePicker
                 label="Fecha de llegada"
                 value={llegada}
-                onChange={v => { setLlegada(v); setShowLlegada(false); }}
+                onChange={v => { 
+                  setLlegada(v); 
+                  setShowLlegada(false); 
+                  if (salida && v >= salida) setSalida(''); // Limpiar salida si queda inválida
+                }}
                 isOpen={showLlegada}
                 onToggle={() => { setShowLlegada(!showLlegada); setShowSalida(false); setBuscadorActive(true); }}
               />
@@ -359,6 +363,7 @@ export default function HomeClient({ bannerImages, featuredRooms, features }: Ho
                 onChange={v => { setSalida(v); setShowSalida(false); }}
                 isOpen={showSalida}
                 onToggle={() => { setShowSalida(!showSalida); setShowLlegada(false); setBuscadorActive(true); }}
+                minDate={llegada}
               />
             </div>
 

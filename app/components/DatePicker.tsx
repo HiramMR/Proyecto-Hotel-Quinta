@@ -23,13 +23,14 @@ interface DatePickerProps {
   onToggle: () => void;
   blockedRanges?: BlockedRange[];
   otherDate?: string;
+  minDate?: string; // Nuevo prop para validar que la salida sea después
   inline?: boolean; // Si true, el calendario empuja el contenido en lugar de flotar
 }
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAYS   = ['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
 
-export default function DatePicker({ label, value, onChange, isOpen, onToggle, blockedRanges = [], otherDate = '', inline = false }: DatePickerProps) {
+export default function DatePicker({ label, value, onChange, isOpen, onToggle, blockedRanges = [], otherDate = '', minDate, inline = false }: DatePickerProps) {
   const today = new Date();
   const [viewYear, setViewYear]   = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -66,6 +67,12 @@ export default function DatePicker({ label, value, onChange, isOpen, onToggle, b
   const isPast = (d: number) => {
     const date         = new Date(viewYear, viewMonth, d);
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    if (minDate) {
+      const minD = new Date(minDate + 'T00:00:00');
+      if (date <= minD) return true; // Bloquea fechas menores o iguales a minDate
+    }
+    
     return date < todayMidnight;
   };
 

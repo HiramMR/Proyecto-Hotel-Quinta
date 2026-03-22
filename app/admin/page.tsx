@@ -55,6 +55,16 @@ interface Room {
   amenities: string[]
 }
 
+interface Testimonio {
+  id: string
+  nombre: string
+  ciudad: string
+  estrellas: number
+  texto: string
+  inicial: string
+  status: 'approved' | 'pending'
+}
+
 const estadoColor: Record<string, string> = {
   confirmada: 'rgba(200,129,58,0.12)',
   pagada:     'rgba(60,160,80,0.1)',
@@ -131,7 +141,7 @@ const defaultReservations: Reservation[] = [
 export default function AdminPage() {
   const { user, isAdmin, loading } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'reservations' | 'refunds' | 'users' | 'rooms'>('reservations')
+  const [activeTab, setActiveTab] = useState<'reservations' | 'refunds' | 'users' | 'rooms' | 'testimonios'>('reservations')
 
   // ── Reservaciones ──
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -144,6 +154,10 @@ export default function AdminPage() {
   // ── Habitaciones ──
   const [rooms, setRooms] = useState<Room[]>([])
   const [loadingRooms, setLoadingRooms] = useState(true)
+
+  // ── Testimonios ──
+  const [testimonios, setTestimonios] = useState<Testimonio[]>([])
+  const [loadingTestimonios, setLoadingTestimonios] = useState(true)
 
   // ── Modal de habitación (agregar/editar) ──
   const [roomModalOpen, setRoomModalOpen] = useState(false)
@@ -208,6 +222,20 @@ export default function AdminPage() {
       setRooms([])
     }
     setLoadingRooms(false)
+  }, [isAdmin, loading])
+
+  // Cargar testimonios
+  useEffect(() => {
+    if (loading || !isAdmin) return
+    const stored = localStorage.getItem('testimonios')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        parsed.sort((a: any, b: any) => (a.status === 'pending' ? -1 : 1)) // Mostrar pendientes primero
+        setTestimonios(parsed)
+      } catch (e) { console.error(e) }
+    }
+    setLoadingTestimonios(false)
   }, [isAdmin, loading])
 
   // ── Cambiar estado de reservación ──
@@ -286,6 +314,19 @@ export default function AdminPage() {
     setDeleteRoomId(null)
   }
 
+  // ── Aprobar / Rechazar testimonios ──
+  const handleApproveTestimonio = (id: string) => {
+    const updated = testimonios.map(t => t.id === id ? { ...t, status: 'approved' as const } : t)
+    setTestimonios(updated)
+    localStorage.setItem('testimonios', JSON.stringify(updated))
+  }
+
+  const handleRejectTestimonio = (id: string) => {
+    const updated = testimonios.filter(t => t.id !== id)
+    setTestimonios(updated)
+    localStorage.setItem('testimonios', JSON.stringify(updated))
+  }
+
   // Toggle amenidad en el formulario
   const toggleAmenity = (a: string) => {
     setRoomForm(prev => ({
@@ -339,6 +380,7 @@ export default function AdminPage() {
               { id: 'refunds',      label: 'Reembolsos' },
               { id: 'users',        label: 'Usuarios' },
               { id: 'rooms',        label: 'Habitaciones' },
+              { id: 'testimonios',  label: 'Testimonios' },
             ].map(tab => (
               <button key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
@@ -697,6 +739,79 @@ export default function AdminPage() {
                         onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.15)'}
                         onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.08)'}>
                         Eliminar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════
+            TAB: TESTIMONIOS
+        ══════════════════════════ */}
+        {activeTab === 'testimonios' && (
+          <div>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="font-display"
+                style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--charcoal)' }}>
+                Gestión de <em>testimonios</em>
+              </h2>
+              <span className="text-xs px-3 py-1 rounded-full"
+                style={{ backgroundColor: 'rgba(200,129,58,0.12)', color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
+                {testimonios.filter(t => t.status === 'pending').length} pendientes
+              </span>
+            </div>
+
+            {loadingTestimonios ? (
+              <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Cargando...</p>
+            ) : testimonios.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+                No hay testimonios aún.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {testimonios.map(t => (
+                  <div key={t.id} className="p-5 rounded-2xl flex flex-col gap-3"
+                    style={{ backgroundColor: 'var(--cream-dark)', border: `1px solid ${t.status === 'pending' ? 'var(--copper)' : 'var(--stone)'}` }}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
+                            style={{ backgroundColor: 'var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-display)', fontSize: '0.9rem' }}>
+                            {t.inicial}
+                          </span>
+                          <div>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>{t.nombre}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>{t.ciudad}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex">
+                          {Array.from({ length: t.estrellas }).map((_, s) => (
+                            <svg key={s} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3" style={{ color: 'var(--copper)' }}>
+                              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354l-4.543 2.826c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                            </svg>
+                          ))}
+                        </div>
+                        {t.status === 'pending' && (
+                          <span className="text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest font-semibold mt-1" style={{ backgroundColor: 'rgba(200,129,58,0.1)', color: 'var(--copper)' }}>
+                            Pendiente
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm italic text-[var(--text-muted)] flex-1 line-clamp-4">"{t.texto}"</p>
+                    <div className="flex gap-2 mt-2 pt-3" style={{ borderTop: '1px solid var(--stone)' }}>
+                      {t.status === 'pending' && (
+                        <button onClick={() => handleApproveTestimonio(t.id)} className="flex-1 py-1.5 text-xs font-semibold bg-[var(--copper)] text-white rounded-lg hover:bg-[var(--copper-dark)] transition-colors">
+                          Aprobar
+                        </button>
+                      )}
+                      <button onClick={() => handleRejectTestimonio(t.id)} className="flex-1 py-1.5 text-xs font-semibold bg-transparent border border-[var(--text-light)] text-[var(--text-muted)] rounded-lg hover:bg-[var(--stone)] transition-colors">
+                        {t.status === 'pending' ? 'Rechazar' : 'Eliminar'}
                       </button>
                     </div>
                   </div>

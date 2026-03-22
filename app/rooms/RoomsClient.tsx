@@ -269,7 +269,11 @@ function RoomsContent() {
             <div className="flex flex-col gap-3 max-w-4xl mx-auto" style={{ position: 'relative', zIndex: 50 }}>
               <div className="w-full" style={{ position: 'relative', zIndex: showLlegada ? 100 : 'auto' }}>
                 <DatePicker label="Fecha de llegada" value={llegada}
-                  onChange={v => { setLlegada(v); setShowLlegada(false); }}
+                  onChange={v => { 
+                    setLlegada(v); 
+                    setShowLlegada(false); 
+                    if (salida && v >= salida) setSalida('');
+                  }}
                   isOpen={showLlegada}
                   onToggle={() => { setShowLlegada(!showLlegada); setShowSalida(false); setShowFilters(false); }} />
               </div>
@@ -277,6 +281,7 @@ function RoomsContent() {
                 <DatePicker label="Fecha de salida" value={salida}
                   onChange={v => { setSalida(v); setShowSalida(false); }}
                   isOpen={showSalida}
+                  minDate={llegada}
                   onToggle={() => { setShowSalida(!showSalida); setShowLlegada(false); setShowFilters(false); }} />
               </div>
               <div className="w-full" style={{ position: 'relative', zIndex: showFilters ? 100 : 'auto' }}>
