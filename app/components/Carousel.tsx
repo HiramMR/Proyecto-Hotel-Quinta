@@ -116,7 +116,7 @@ export default function Carousel({
         <button
           onClick={prev}
           aria-label="Anterior"
-          className="pointer-events-auto p-2 md:p-1 rounded-full shadow bg-white/60 text-[var(--copper)] hover:bg-white transition-all md:hidden md:group-hover:block"
+          className="pointer-events-auto p-2 md:p-1 rounded-full shadow bg-white/60 text-(--copper) hover:bg-white transition-all md:hidden md:group-hover:block"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -125,7 +125,7 @@ export default function Carousel({
         <button
           onClick={next}
           aria-label="Siguiente"
-          className="pointer-events-auto p-2 md:p-1 rounded-full shadow bg-white/60 text-[var(--copper)] hover:bg-white transition-all md:hidden md:group-hover:block"
+          className="pointer-events-auto p-2 md:p-1 rounded-full shadow bg-white/60 text-(--copper) hover:bg-white transition-all md:hidden md:group-hover:block"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />

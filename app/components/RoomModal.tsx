@@ -566,9 +566,19 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                       </p>
                     )}
                   </div>
-                  <button onClick={() => setStep('booking')} className="btn-copper" style={{ minWidth: '180px', textAlign: 'center' }}>
-                    Reservar ahora
-                  </button>
+                  <div className="flex flex-col items-end">
+                    <button onClick={() => setStep('booking')} 
+                      className="btn-copper" 
+                      style={{ minWidth: '180px', textAlign: 'center', opacity: (!llegada || !salida) ? 0.5 : 1, cursor: (!llegada || !salida) ? 'not-allowed' : 'pointer' }}
+                      disabled={!llegada || !salida}>
+                      Reservar ahora
+                    </button>
+                    {(!llegada || !salida) && (
+                      <p className="text-xs mt-2" style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>
+                        Selecciona tus fechas para continuar
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -676,18 +686,26 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                     {selectedPayment === 'card' && (
                       <div className="mb-4">
                         <div className="p-4 rounded-lg mb-4 space-y-3" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
-                          <input type="text" className="input-warm" placeholder="Número de tarjeta (Simulado)" />
+                          <input type="text" className="input-warm" placeholder="Número de tarjeta (Simulado)" 
+                            value={cardData.numero} onChange={e => setCardData({...cardData, numero: e.target.value})} />
                           <div className="flex gap-2">
-                            <input type="text" className="input-warm w-1/2" placeholder="MM/YY" />
-                            <input type="text" className="input-warm w-1/2" placeholder="CVC" />
+                            <input type="text" className="input-warm w-1/2" placeholder="MM/YY" 
+                              value={cardData.expiry} onChange={e => setCardData({...cardData, expiry: e.target.value})} />
+                            <input type="text" className="input-warm w-1/2" placeholder="CVC" 
+                              value={cardData.cvv} onChange={e => setCardData({...cardData, cvv: e.target.value})} />
                           </div>
                         </div>
                         <button type="button" onClick={handlePrepareCardPayment}
                           className="btn-copper w-full text-center"
-                          disabled={saving}
-                          style={{ opacity: saving ? 0.7 : 1 }}>
+                          disabled={saving || !cardData.numero || !cardData.expiry || !cardData.cvv}
+                          style={{ opacity: (saving || !cardData.numero || !cardData.expiry || !cardData.cvv) ? 0.7 : 1, cursor: (saving || !cardData.numero || !cardData.expiry || !cardData.cvv) ? 'not-allowed' : 'pointer' }}>
                           {saving ? 'Procesando pago...' : 'Pagar ahora'}
                         </button>
+                        {(!cardData.numero || !cardData.expiry || !cardData.cvv) && (
+                          <p className="text-xs text-center mt-2" style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>
+                            Completa los datos de la tarjeta para continuar
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -729,12 +747,19 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
 
                     {/* ✅ Botón confirmar — onClick en lugar de type="submit" */}
                     {selectedPayment !== 'card' && (
-                      <button type="button" onClick={handleConfirm}
-                        className="btn-copper w-full text-center mt-2"
-                        style={{ opacity: selectedPayment && !saving ? 1 : 0.5, transition: 'opacity 0.2s' }}
-                        disabled={!selectedPayment || saving}>
-                        {saving ? 'Guardando reservación...' : 'Confirmar reservación'}
-                      </button>
+                      <>
+                        <button type="button" onClick={handleConfirm}
+                          className="btn-copper w-full text-center mt-2"
+                          style={{ opacity: selectedPayment && !saving ? 1 : 0.5, transition: 'opacity 0.2s', cursor: (!selectedPayment || saving) ? 'not-allowed' : 'pointer' }}
+                          disabled={!selectedPayment || saving}>
+                          {saving ? 'Guardando reservación...' : 'Confirmar reservación'}
+                        </button>
+                        {!selectedPayment && (
+                          <p className="text-xs text-center mt-2" style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>
+                            Selecciona un método de pago para confirmar
+                          </p>
+                        )}
+                      </>
                     )}
 
                     <p className="text-xs text-center mt-3" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
