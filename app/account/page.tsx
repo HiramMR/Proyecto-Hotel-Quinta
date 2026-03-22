@@ -174,8 +174,16 @@ function ProfileForm({ user, profile, onSaved }: {
   }
 
   const handleSave = async () => {
-    if (!form.nombre.trim()) {
-      setSaveError('El nombre es obligatorio.')
+    if (form.nombre.trim().length < 2 || form.nombre.trim().length > 50) {
+      setSaveError('El nombre debe tener entre 2 y 50 caracteres.')
+      return
+    }
+    if (form.apellido.trim() && form.apellido.trim().length > 50) {
+      setSaveError('El apellido no debe exceder los 50 caracteres.')
+      return
+    }
+    if (form.telefono.trim() && form.telefono.trim().replace(/\D/g, '').length < 8) {
+      setSaveError('El teléfono debe ser válido (mínimo 8 dígitos).')
       return
     }
     if (!canEdit()) {
@@ -365,6 +373,7 @@ export default function AccountPage() {
   const [reviews, setReviews] = useState<any[]>([])
   const [reviewingId, setReviewingId] = useState<number | null>(null)
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+  const [reviewError, setReviewError] = useState('')
 
   // Redirigir si no hay sesión
   useEffect(() => {
@@ -747,8 +756,14 @@ export default function AccountPage() {
                                       ))}
                                     </div>
                                     <textarea className="input-warm text-xs resize-none" rows={3} placeholder="¿Qué te pareció tu estancia?" value={reviewForm.comment} onChange={e => setReviewForm({...reviewForm, comment: e.target.value})} />
+                                    {reviewError && <p className="text-[10px]" style={{ color: '#c03c3c' }}>{reviewError}</p>}
                                     <div className="flex gap-2">
                                       <button className="btn-copper flex-1 py-2 text-[11px]" onClick={() => {
+                                        if (reviewForm.comment.trim().length < 10 || reviewForm.comment.trim().length > 500) {
+                                          setReviewError('Tu reseña debe tener entre 10 y 500 caracteres.')
+                                          return
+                                        }
+                                        setReviewError('')
                                         const stored = localStorage.getItem('room_reviews') || '[]'
                                         const parsed = JSON.parse(stored)
                                         parsed.push({ reservation_id: res.id, room_id: res.room_id, user_id: user?.id, user_name: displayName, rating: reviewForm.rating, comment: reviewForm.comment, date: new Date().toISOString() })
@@ -767,7 +782,7 @@ export default function AccountPage() {
                                     <p className="text-xs font-semibold mb-1" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>🌟 Valora tu estancia</p>
                                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Cuéntanos qué te pareció esta habitación.</p>
                                   </div>
-                                  <button className="btn-copper text-[10px] px-3 py-1.5" onClick={() => { setReviewingId(res.id); setReviewForm({ rating: 5, comment: '' }) }}>Valorar</button>
+                                  <button className="btn-copper text-[10px] px-3 py-1.5" onClick={() => { setReviewingId(res.id); setReviewForm({ rating: 5, comment: '' }); setReviewError('') }}>Valorar</button>
                                 </div>
                               )
                             } else if (existingReview) {

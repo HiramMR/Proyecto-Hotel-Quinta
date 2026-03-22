@@ -54,10 +54,19 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nombre.trim() || !form.telefono.trim() || !form.mensaje.trim()) {
-      setError('Por favor completa todos los campos.');
+    if (!form.nombre.trim() || form.nombre.trim().length < 2 || form.nombre.trim().length > 50) {
+      setError('El nombre debe tener entre 2 y 50 caracteres.');
       return;
     }
+    if (form.telefono.trim().replace(/\D/g, '').length < 8) {
+      setError('Ingresa un teléfono válido de al menos 8 dígitos.');
+      return;
+    }
+    if (!form.mensaje.trim() || form.mensaje.trim().length < 10 || form.mensaje.trim().length > 1000) {
+      setError('El mensaje debe tener entre 10 y 1000 caracteres.');
+      return;
+    }
+
     setSending(true);
     setError('');
 

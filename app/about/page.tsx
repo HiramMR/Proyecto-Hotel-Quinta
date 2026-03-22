@@ -99,6 +99,7 @@ export default function AboutPage() {
   const [newTestimonio, setNewTestimonio] = useState({ texto: '', ciudad: '', estrellas: 5 });
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [existingTestimonioId, setExistingTestimonioId] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => setIsMounted(true), 200);
@@ -128,6 +129,16 @@ export default function AboutPage() {
     e.preventDefault();
     if (!profile || !user) return;
     
+    if (newTestimonio.texto.trim().length < 10 || newTestimonio.texto.trim().length > 500) {
+      setError('La reseña debe tener entre 10 y 500 caracteres.');
+      return;
+    }
+    if (newTestimonio.ciudad.trim().length > 50) {
+      setError('El nombre de la ciudad no debe exceder los 50 caracteres.');
+      return;
+    }
+    setError('');
+
     const testimonio: Testimonio = {
       id: existingTestimonioId || Date.now().toString(),
       user_id: user.id,
@@ -467,6 +478,9 @@ export default function AboutPage() {
                         placeholder="Cuéntanos cómo fue tu estadía..."
                       />
                     </div>
+                    {error && (
+                      <p className="text-xs text-center" style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>{error}</p>
+                    )}
                     <button type="submit" className="btn-copper mt-2 w-full">
                       {existingTestimonioId ? 'Actualizar testimonio' : 'Enviar testimonio'}
                     </button>

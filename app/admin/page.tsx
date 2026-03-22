@@ -199,6 +199,7 @@ export default function AdminPage() {
   const [roomForm, setRoomForm] = useState<Omit<Room, 'id'>>(emptyRoom)
   const [savingRoom, setSavingRoom] = useState(false)
   const [newImageUrl, setNewImageUrl] = useState('')
+  const [roomFormError, setRoomFormError] = useState('')
 
   // ── Modal eliminar habitación ──
   const [deleteRoomId, setDeleteRoomId] = useState<number | null>(null)
@@ -290,6 +291,7 @@ export default function AdminPage() {
     setEditingRoom(null)
     setRoomForm(emptyRoom)
     setNewImageUrl('')
+    setRoomFormError('')
     setRoomModalOpen(true)
   }
 
@@ -308,11 +310,36 @@ export default function AdminPage() {
       amenities: room.amenities,
     })
     setNewImageUrl('')
+    setRoomFormError('')
     setRoomModalOpen(true)
   }
 
   // ── Guardar habitación (agregar o editar) ──
   const handleSaveRoom = async () => {
+    // Validaciones
+    if (!roomForm.title.trim() || roomForm.title.trim().length < 3) {
+      return setRoomFormError('El nombre debe tener al menos 3 caracteres.')
+    }
+    if (!roomForm.description.trim() || roomForm.description.trim().length < 10) {
+      return setRoomFormError('La descripción corta debe tener al menos 10 caracteres.')
+    }
+    if (!roomForm.longDescription.trim() || roomForm.longDescription.trim().length < 20) {
+      return setRoomFormError('La descripción completa debe tener al menos 20 caracteres.')
+    }
+    if (roomForm.price <= 0) {
+      return setRoomFormError('El precio debe ser mayor a 0.')
+    }
+    if (roomForm.capacity <= 0) {
+      return setRoomFormError('La capacidad debe ser de al menos 1 huésped.')
+    }
+    if (roomForm.stars < 1 || roomForm.stars > 5) {
+      return setRoomFormError('Las estrellas deben estar entre 1 y 5.')
+    }
+    if (roomForm.images.length === 0) {
+      return setRoomFormError('Agrega al menos una imagen de la habitación.')
+    }
+
+    setRoomFormError('')
     setSavingRoom(true)
     const stored = localStorage.getItem('rooms')
     let parsedRooms: Room[] = stored ? JSON.parse(stored) : []
@@ -1017,6 +1044,13 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
+
+            {/* Error de validación */}
+            {roomFormError && (
+              <div className="px-8 pb-4">
+                <p className="text-sm p-3 rounded-lg" style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', border: '1px solid rgba(200,60,60,0.2)', fontFamily: 'var(--font-ui)' }}>{roomFormError}</p>
+              </div>
+            )}
 
             {/* Footer del modal */}
             <div className="px-8 pb-8 flex gap-3">

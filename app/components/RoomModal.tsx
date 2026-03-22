@@ -369,6 +369,21 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   // ── Preparar pago con tarjeta: crear reservación + PaymentIntent ──
   const handlePrepareCardPayment = async () => {
     if (!user) return;
+
+    // Validaciones
+    if (cardData.numero.replace(/\D/g, '').length !== 16) {
+      setSavingError('El número de tarjeta debe tener 16 dígitos.');
+      return;
+    }
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardData.expiry)) {
+      setSavingError('La fecha de expiración debe tener el formato MM/YY.');
+      return;
+    }
+    if (!/^\d{3,4}$/.test(cardData.cvv)) {
+      setSavingError('El CVC debe tener 3 o 4 dígitos.');
+      return;
+    }
+
     setSaving(true);
     setSavingError('');
 
