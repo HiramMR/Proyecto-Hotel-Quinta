@@ -33,6 +33,18 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    
+    // Validaciones básicas de inicio de sesión
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(correo) || correo.length > 100) {
+      setError('Ingresa un correo electrónico válido.')
+      return
+    }
+    if (contrasena.length < 8 || contrasena.length > 16) {
+      setError('Credenciales incorrectas.')
+      return
+    }
+
     setLoading(true)
 
     const { error } = await signIn(correo, contrasena)
@@ -115,6 +127,7 @@ export default function LoginPage() {
                 placeholder="tu@correo.com"
                 value={correo}
                 onChange={e => setCorreo(e.target.value)}
+                maxLength={100}
                 required
               />
             </div>
@@ -135,6 +148,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 value={contrasena}
                 onChange={e => setContrasena(e.target.value)}
+                maxLength={16}
                 required
               />
             </div>

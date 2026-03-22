@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const [apellido, setApellido] = useState('')
   const [correo, setCorreo] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [codigoPais, setCodigoPais] = useState('+52')
   const [contrasena, setContrasena] = useState('')
   const [confirmar, setConfirmar] = useState('')
 
@@ -42,12 +43,30 @@ export default function RegisterPage() {
     setError('')
 
     // Validaciones
-    if (contrasena !== confirmar) {
-      setError('Las contraseñas no coinciden.')
+    if (nombre.trim().length < 2 || nombre.trim().length > 50) {
+      setError('El nombre debe tener entre 2 y 50 caracteres.')
       return
     }
-    if (contrasena.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.')
+    if (apellido.trim().length < 2 || apellido.trim().length > 50) {
+      setError('El apellido debe tener entre 2 y 50 caracteres.')
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(correo) || correo.length > 100) {
+      setError('Ingresa un correo electrónico válido (máximo 100 caracteres).')
+      return
+    }
+    if (telefono && telefono.length < 8) {
+      setError('El número de teléfono debe tener al menos 8 dígitos.')
+      return
+    }
+    const passRegex = /^(?=.*[A-Z])(?=.*\d).{8,16}$/
+    if (!passRegex.test(contrasena)) {
+      setError('La contraseña debe tener entre 8 y 16 caracteres, incluir al menos una mayúscula y un número.')
+      return
+    }
+    if (contrasena !== confirmar) {
+      setError('Las contraseñas no coinciden.')
       return
     }
 
@@ -69,7 +88,7 @@ export default function RegisterPage() {
         apellido: apellido.trim(),
         email: correo.trim(),
         password: contrasena,
-        telefono: telefono.trim(),
+        telefono: telefono ? `${codigoPais} ${telefono.trim()}` : '',
         role: 'user',
         created_at: new Date().toISOString()
       }
@@ -152,7 +171,7 @@ export default function RegisterPage() {
                   Nombre
                 </label>
                 <input type="text" className="input-warm" placeholder="Ana"
-                  value={nombre} onChange={e => setNombre(e.target.value)} required />
+                  value={nombre} onChange={e => setNombre(e.target.value)} maxLength={50} required />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-2 uppercase tracking-widest"
@@ -160,7 +179,7 @@ export default function RegisterPage() {
                   Apellido
                 </label>
                 <input type="text" className="input-warm" placeholder="García"
-                  value={apellido} onChange={e => setApellido(e.target.value)} required />
+                  value={apellido} onChange={e => setApellido(e.target.value)} maxLength={50} required />
               </div>
             </div>
 
@@ -171,7 +190,7 @@ export default function RegisterPage() {
                 Correo Electrónico
               </label>
               <input type="email" className="input-warm" placeholder="tu@correo.com"
-                value={correo} onChange={e => setCorreo(e.target.value)} required />
+                value={correo} onChange={e => setCorreo(e.target.value)} maxLength={100} required />
             </div>
 
             {/* Teléfono */}
@@ -180,8 +199,18 @@ export default function RegisterPage() {
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                 Teléfono <span style={{ color: 'var(--text-light)', textTransform: 'none', letterSpacing: 0 }}>(opcional)</span>
               </label>
-              <input type="tel" className="input-warm" placeholder="+52 443 000 0000"
-                value={telefono} onChange={e => setTelefono(e.target.value)} />
+              <div className="flex gap-2">
+                <select className="input-warm w-1/3 px-2 cursor-pointer" value={codigoPais} onChange={e => setCodigoPais(e.target.value)}>
+                  <option value="+52">+52 🇲🇽</option>
+                  <option value="+1">+1 🇺🇸/🇨🇦</option>
+                  <option value="+34">+34 🇪🇸</option>
+                  <option value="+54">+54 🇦🇷</option>
+                  <option value="+56">+56 🇨🇱</option>
+                  <option value="+57">+57 🇨🇴</option>
+                </select>
+                <input type="tel" className="input-warm w-2/3" placeholder="4430000000"
+                  value={telefono} onChange={e => setTelefono(e.target.value.replace(/\D/g, ''))} maxLength={15} />
+              </div>
             </div>
 
             {/* Contraseña */}
@@ -191,7 +220,7 @@ export default function RegisterPage() {
                 Contraseña
               </label>
               <input type="password" className="input-warm" placeholder="••••••••"
-                value={contrasena} onChange={e => setContrasena(e.target.value)} required />
+                value={contrasena} onChange={e => setContrasena(e.target.value)} maxLength={16} required />
             </div>
 
             {/* Confirmar contraseña */}
@@ -201,7 +230,7 @@ export default function RegisterPage() {
                 Confirmar Contraseña
               </label>
               <input type="password" className="input-warm" placeholder="••••••••"
-                value={confirmar} onChange={e => setConfirmar(e.target.value)} required />
+                value={confirmar} onChange={e => setConfirmar(e.target.value)} maxLength={16} required />
             </div>
 
             {/* Error */}
