@@ -84,11 +84,11 @@ export default function AboutPage() {
 
       {/* ── HERO ── */}
       <section className="relative flex items-end pb-16 pt-40 grain-overlay overflow-hidden"
-        style={{ backgroundColor: 'var(--wood-dark)', minHeight: '42vh' }}>
+        style={{ backgroundColor: 'var(--charcoal)', minHeight: '42vh' }}>
         <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(200,129,58,0.3) 0%, transparent 65%)' }} />
-        <div className="absolute inset-0 pointer-events-none opacity-5"
-          style={{ backgroundImage: 'repeating-linear-gradient(45deg, var(--copper) 0, var(--copper) 1px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }} />
+          style={{ background: 'radial-gradient(ellipse at 30% 60%, rgba(139,94,60,0.3) 0%, transparent 65%)' }} />
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 80% 20%, rgba(200,129,58,0.08) 0%, transparent 50%)' }} />
         <div className="container mx-auto px-6 relative z-10">
           <p className={`text-xs uppercase tracking-[0.3em] mb-3 transition-all duration-700 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)', transitionDelay: '0ms' }}>
