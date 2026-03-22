@@ -265,6 +265,37 @@ export default function HomeClient({ bannerImages, featuredRooms, features }: Ho
         </div>
       </section>
 
+      {/* ── UBICACIÓN (MAPA) ── */}
+      <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--cream-dark)' }}>
+        <div className="container mx-auto px-4">
+          <Reveal direction="up" className="text-center mb-12">
+            <p className="text-xs uppercase tracking-[0.25em] mb-4" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
+              Nuestra Ubicación
+            </p>
+            <h2 className="font-display" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 400, color: 'var(--charcoal)' }}>
+              Encuéntranos
+            </h2>
+            <div className="divider-ornament max-w-xs mx-auto mt-6">
+              <span className="text-xs uppercase tracking-widest px-4" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>✦</span>
+            </div>
+          </Reveal>
+
+          <Reveal direction="up" delay={100} className="max-w-5xl mx-auto">
+            <div className="rounded-2xl overflow-hidden relative z-10" style={{ border: '1px solid var(--stone)', boxShadow: 'var(--shadow-md)', backgroundColor: 'var(--cream)' }}>
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d892.3849592410616!2d-101.58898885849402!3d19.846965466511364!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1ses-419!2smx!4v1774144472322!5m2!1ses-419!2smx"
+                width="100%"
+                height="450"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── CTA FINAL ── */}
       <section className="py-20 md:py-28 relative overflow-hidden grain-overlay" style={{ backgroundColor: 'var(--charcoal)' }}>
         <div className="absolute inset-0 opacity-15">
