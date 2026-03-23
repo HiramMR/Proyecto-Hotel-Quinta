@@ -29,6 +29,10 @@ export default function NavBar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => { 
+    window.scrollTo({top: 0, behavior: 'instant'});
+  }, [pathname]);
+
   const links = [
     { name: 'Inicio',       href: '/' },
     { name: 'Habitaciones', href: '/rooms' },

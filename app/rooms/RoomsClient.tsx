@@ -14,7 +14,7 @@ import RoomCard from '../components/RoomCard';
 import RoomModal from '../components/RoomModal';
 import DatePicker from '../components/DatePicker';
 
-function useInView(threshold = 0.12) {
+function useInView(threshold = 0.05, rootMargin = '20px') {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -22,11 +22,11 @@ function useInView(threshold = 0.12) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
-      { threshold }
+      { threshold, rootMargin }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [threshold]);
+  }, [threshold, rootMargin]);
   return { ref, visible };
 }
 
@@ -40,7 +40,7 @@ function Reveal({ children, delay = 0, direction = 'up', className = '' }: {
   };
   return (
     <div ref={ref}
-      className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-x-0 translate-y-0' : initial[direction]} ${className}`}
+      className={`transition-all duration-600 ease-out ${visible ? 'opacity-100 translate-x-0 translate-y-0' : initial[direction]} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}>
       {children}
     </div>

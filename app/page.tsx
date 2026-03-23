@@ -7,14 +7,16 @@ import HomeClient from './components/HomeClient';
 import { supabase } from '../lib/supabase';
 
 const bannerImages = [
-  '/img/carrusel/lago.jpg',
+  '/img/carrusel/outside.jpg',
   '/img/carrusel/lobby.jpg',
   '/img/carrusel/lobby2.jpg',
-  '/img/carrusel/outside.jpg',
+  '/img/carrusel/lobby3.jpg',
+  '/img/carrusel/lobby4.jpg',
+  '/img/carrusel/lago2.jpg',
 ];
 
 const features = [
-  { icon: '🌊', title: 'Frente al Lago',    description: 'Despierta cada mañana con la vista al Lago de Pátzcuaro directamente desde tu habitación.' },
+  { icon: '🌊', title: 'Frente al Lago',    description: 'Despierta cada mañana con la vista al Lago directamente desde tu habitación.' },
   { icon: '🏺', title: 'Arte Local',        description: 'Cada rincón está decorado con artesanía purépecha auténtica, seleccionada por maestros artesanos.' },
   { icon: '🍽️', title: 'Gastronomía',      description: 'Sabores michoacanos de autor: cocina de temporada con ingredientes locales y recetas heredadas.' },
 ];
