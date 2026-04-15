@@ -518,6 +518,10 @@ export default function AdminPage() {
     if (!userForm.email?.trim()) return setUserFormError('El correo es obligatorio.')
     if (!editingUser && !userForm.password?.trim()) return setUserFormError('La contraseña es obligatoria.')
 
+    if (editingUser && editingUser.id === user?.id && userForm.role !== 'admin') {
+      return setUserFormError('No puedes quitarte el rol de administrador a ti mismo.')
+    }
+
     const stored = localStorage.getItem('users')
     let parsedUsers: UserProfile[] = stored ? JSON.parse(stored) : []
 
@@ -539,7 +543,7 @@ export default function AdminPage() {
 
   // ── Eliminar usuario ──
   const handleDeleteUser = () => {
-    if (!deleteUserId) return
+    if (!deleteUserId || deleteUserId === user?.id) return
     const stored = localStorage.getItem('users')
     if (stored) {
       const parsed = JSON.parse(stored)
@@ -972,7 +976,9 @@ export default function AdminPage() {
                       </span>
                       <div className="flex gap-2">
                         <button onClick={() => { setEditingUser(u); setUserForm({ nombre: u.nombre||'', apellido: u.apellido||'', email: u.email||'', telefono: u.telefono||'', role: u.role||'user', password: u.password||'' }); setUserFormError(''); setUserModalOpen(true); }} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,129,58,0.1)', color: 'var(--copper)', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,129,58,0.2)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,129,58,0.2)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,129,58,0.1)'}>Editar</button>
-                        <button onClick={() => setDeleteUserId(u.id)} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,60,60,0.2)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.15)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.08)'}>Eliminar</button>
+                        {u.id !== user?.id && (
+                          <button onClick={() => setDeleteUserId(u.id)} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,60,60,0.2)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.15)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.08)'}>Eliminar</button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1462,10 +1468,13 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Rol</label>
-                  <select className="input-warm" value={userForm.role} onChange={e => setUserForm(p => ({ ...p, role: e.target.value }))}>
+                  <select className="input-warm" value={userForm.role} onChange={e => setUserForm(p => ({ ...p, role: e.target.value }))} disabled={editingUser?.id === user?.id} style={{ opacity: editingUser?.id === user?.id ? 0.7 : 1, cursor: editingUser?.id === user?.id ? 'not-allowed' : 'auto' }}>
                     <option value="user">Usuario</option>
                     <option value="admin">Administrador</option>
                   </select>
+                  {editingUser?.id === user?.id && (
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>No puedes cambiar tu propio rol.</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Contraseña {editingUser && '(Opcional)'}</label>
