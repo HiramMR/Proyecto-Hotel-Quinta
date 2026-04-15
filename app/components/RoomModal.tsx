@@ -297,7 +297,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   };
 
   const longDesc = room.longDescription ??
-    `${room.description} Cada detalle de esta habitación ha sido cuidadosamente seleccionado para ofrecerte una experiencia única frente al Lago de Pátzcuaro.`;
+    `${room.description} Cada detalle de esta habitación ha sido cuidadosamente seleccionado para ofrecerte una experiencia única.`;
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 30);

@@ -11,9 +11,10 @@
 // ============================================================
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
+import DatePicker from '../components/DatePicker'
 
 interface Reservation {
   id: number
@@ -201,6 +202,41 @@ export default function AdminPage() {
   const [newImageUrl, setNewImageUrl] = useState('')
   const [roomFormError, setRoomFormError] = useState('')
 
+  // ── Filtros ──
+  const [resFilterUser, setResFilterUser] = useState('')
+  const [resFilterRoom, setResFilterRoom] = useState('')
+  const [resFilterLlegada, setResFilterLlegada] = useState('')
+  const [resFilterSalida, setResFilterSalida] = useState('')
+  const [resSortOrder, setResSortOrder] = useState<'desc' | 'asc'>('desc')
+  
+  const [userSearch, setUserSearch] = useState('')
+  const [userFilterRole, setUserFilterRole] = useState('')
+
+  // ── Modal agregar reservación ──
+  const [resModalOpen, setResModalOpen] = useState(false)
+  const [resForm, setResForm] = useState({
+    hasAccount: true, guestName: '', guestPhone: '',
+    user_id: '', room_id: '', fecha_llegada: '', fecha_salida: '', metodo_pago: 'cash', estado: 'confirmada'
+  })
+  const [resFormError, setResFormError] = useState('')
+  const [showLlegada, setShowLlegada] = useState(false)
+  const [showSalida, setShowSalida] = useState(false)
+  const [showFilterLlegada, setShowFilterLlegada] = useState(false)
+  const [showFilterSalida, setShowFilterSalida] = useState(false)
+
+  // ── Scroll Refs para Modal ──
+  const resLlegadaRef = useRef<HTMLDivElement>(null)
+  const resSalidaRef = useRef<HTMLDivElement>(null)
+
+  // ── Modal de usuario (agregar/editar/eliminar) ──
+  const [userModalOpen, setUserModalOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
+  const [userForm, setUserForm] = useState({
+    nombre: '', apellido: '', email: '', telefono: '', role: 'user', password: ''
+  })
+  const [userFormError, setUserFormError] = useState('')
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
+
   // ── Modal eliminar habitación ──
   const [deleteRoomId, setDeleteRoomId] = useState<number | null>(null)
 
@@ -273,6 +309,15 @@ export default function AdminPage() {
     setLoadingTestimonios(false)
   }, [isAdmin, loading])
 
+  // ── Utilidades ──
+  const calculateNights = (llegada: string, salida: string) => {
+    if (!llegada || !salida) return 0;
+    const a = new Date(llegada + 'T00:00:00');
+    const b = new Date(salida + 'T00:00:00');
+    const diff = Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  };
+
   // ── Cambiar estado de reservación ──
   const handleEstadoChange = async (id: number, nuevoEstado: string) => {
     const stored = localStorage.getItem('reservations')
@@ -285,6 +330,44 @@ export default function AdminPage() {
     }
     setReservations(prev => prev.map(r => r.id === id ? { ...r, estado: nuevoEstado } : r))
   }
+
+  // ── Filtros aplicados ──
+  let filteredReservations = reservations.filter(r => {
+    const matchRoom = resFilterRoom ? r.room_id?.toString() === resFilterRoom : true;
+    const matchUser = resFilterUser ? (
+      r.profiles?.nombre?.toLowerCase().includes(resFilterUser.toLowerCase()) || 
+      r.profiles?.apellido?.toLowerCase().includes(resFilterUser.toLowerCase()) ||
+      r.id.toString().includes(resFilterUser)
+    ) : true;
+    
+    const matchDate = (() => {
+      if (!resFilterLlegada && !resFilterSalida) return true;
+      if (resFilterLlegada && !resFilterSalida) return r.fecha_salida >= resFilterLlegada;
+      if (!resFilterLlegada && resFilterSalida) return r.fecha_llegada <= resFilterSalida;
+      if (resFilterLlegada && resFilterSalida) {
+        return r.fecha_llegada < resFilterSalida && r.fecha_salida > resFilterLlegada;
+      }
+      return true;
+    })();
+    return matchRoom && matchUser && matchDate;
+  });
+
+  filteredReservations.sort((a, b) => {
+    const timeA = new Date(a.created_at).getTime();
+    const timeB = new Date(b.created_at).getTime();
+    return resSortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+  });
+
+  const filteredUsers = users.filter(u => {
+    const matchName = (() => {
+      if (!userSearch) return true;
+      const searchTerms = userSearch.toLowerCase().split(' ').filter(Boolean);
+      const userText = `${u.nombre || ''} ${u.apellido || ''} ${u.email || ''}`.toLowerCase();
+      return searchTerms.every(term => userText.includes(term));
+    })();
+    const matchRole = userFilterRole ? u.role === userFilterRole : true;
+    return matchName && matchRole;
+  });
 
   // ── Abrir modal para agregar habitación ──
   const openAddRoom = () => {
@@ -373,6 +456,98 @@ export default function AdminPage() {
     }
     setRooms(prev => prev.filter(r => r.id !== deleteRoomId))
     setDeleteRoomId(null)
+  }
+
+  // ── Guardar reservación manual ──
+  const handleSaveRes = () => {
+    if (resForm.hasAccount) {
+      if (!resForm.user_id) return setResFormError('Selecciona un huésped.')
+    } else {
+      if (!resForm.guestName.trim()) return setResFormError('Ingresa el nombre del huésped.')
+      if (!resForm.guestPhone.trim()) return setResFormError('Ingresa el teléfono del huésped.')
+    }
+    if (!resForm.room_id) return setResFormError('Selecciona una habitación.')
+    if (!resForm.fecha_llegada || !resForm.fecha_salida) return setResFormError('Selecciona las fechas.')
+    const noches = calculateNights(resForm.fecha_llegada, resForm.fecha_salida)
+    if (noches <= 0) return setResFormError('La fecha de salida debe ser posterior a la llegada.')
+
+    const room = rooms.find(r => r.id.toString() === resForm.room_id)
+    if (!room) return setResFormError('Habitación inválida.')
+
+    let guestInfo;
+    let userIdToUse;
+    if (resForm.hasAccount) {
+      const guest = users.find(u => u.id === resForm.user_id)
+      if (!guest) return setResFormError('Usuario inválido.')
+      guestInfo = { nombre: guest.nombre, apellido: guest.apellido, telefono: guest.telefono }
+      userIdToUse = guest.id
+    } else {
+      guestInfo = { nombre: resForm.guestName, apellido: '', telefono: resForm.guestPhone }
+      userIdToUse = `guest_${Date.now()}`
+    }
+
+    const newRes: Reservation = {
+      id: Date.now(),
+      user_id: userIdToUse,
+      room_id: room.id,
+      fecha_llegada: resForm.fecha_llegada,
+      fecha_salida: resForm.fecha_salida,
+      noches,
+      total: room.price * noches,
+      metodo_pago: resForm.metodo_pago,
+      estado: resForm.estado,
+      created_at: new Date().toISOString(),
+      payment_intent_id: null,
+      refund_id: null,
+      refund_requested: false,
+      profiles: guestInfo,
+      rooms: { title: room.title, images: room.images, stars: room.stars }
+    }
+
+    const stored = localStorage.getItem('reservations')
+    const parsed = stored ? JSON.parse(stored) : []
+    const updated = [newRes, ...parsed]
+    localStorage.setItem('reservations', JSON.stringify(updated))
+    setReservations(prev => [newRes, ...prev])
+    setResModalOpen(false)
+  }
+
+  // ── Guardar usuario ──
+  const handleSaveUser = () => {
+    if (!userForm.nombre?.trim()) return setUserFormError('El nombre es obligatorio.')
+    if (!userForm.email?.trim()) return setUserFormError('El correo es obligatorio.')
+    if (!editingUser && !userForm.password?.trim()) return setUserFormError('La contraseña es obligatoria.')
+
+    const stored = localStorage.getItem('users')
+    let parsedUsers: UserProfile[] = stored ? JSON.parse(stored) : []
+
+    if (editingUser) {
+      parsedUsers = parsedUsers.map(u => u.id === editingUser.id ? { ...u, ...userForm } as UserProfile : u)
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...userForm } as UserProfile : u))
+    } else {
+      const newUser: UserProfile = {
+        id: Date.now().toString(),
+        ...userForm,
+        created_at: new Date().toISOString()
+      }
+      parsedUsers = [newUser, ...parsedUsers]
+      setUsers(prev => [newUser, ...prev])
+    }
+    localStorage.setItem('users', JSON.stringify(parsedUsers))
+    setUserModalOpen(false)
+  }
+
+  // ── Eliminar usuario ──
+  const handleDeleteUser = () => {
+    if (!deleteUserId) return
+    const stored = localStorage.getItem('users')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      const updated = parsed.filter((u: UserProfile) => u.id !== deleteUserId)
+      localStorage.setItem('users', JSON.stringify(updated))
+    }
+    setUsers(prev => prev.filter(u => u.id !== deleteUserId))
+    setDeleteUserId(null)
   }
 
   // ── Aprobar / Rechazar testimonios ──
@@ -466,15 +641,58 @@ export default function AdminPage() {
         ══════════════════════════ */}
         {activeTab === 'reservations' && (
           <div>
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="font-display"
-                style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--charcoal)' }}>
-                Todas las <em>reservaciones</em>
-              </h2>
-              <span className="text-xs px-3 py-1 rounded-full"
-                style={{ backgroundColor: 'rgba(200,129,58,0.12)', color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
-                {reservations.length} total
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div>
+                <h2 className="font-display"
+                  style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--charcoal)' }}>
+                  Todas las <em>reservaciones</em>
+                </h2>
+                <span className="text-xs px-3 py-1 rounded-full mt-2 inline-block"
+                  style={{ backgroundColor: 'rgba(200,129,58,0.12)', color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
+                  {filteredReservations.length} resultados
+                </span>
+              </div>
+              <button onClick={() => { setResForm({ hasAccount: true, guestName: '', guestPhone: '', user_id: '', room_id: '', fecha_llegada: '', fecha_salida: '', metodo_pago: 'cash', estado: 'confirmada' }); setResFormError(''); setResModalOpen(true); }} className="btn-copper whitespace-nowrap w-full sm:w-auto">
+                + Agregar reservación
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 mb-8 p-4 rounded-xl"
+              style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+              <input type="text" placeholder="Buscar huésped o folio..." className="input-warm text-sm py-2 px-3"
+                value={resFilterUser} onChange={e => setResFilterUser(e.target.value)} />
+              
+              <select className="input-warm text-sm py-2 px-3" value={resFilterRoom} onChange={e => setResFilterRoom(e.target.value)}>
+                <option value="">Cualquier habitación</option>
+                {rooms.map(r => (
+                  <option key={r.id} value={r.id.toString()}>{r.title}</option>
+                ))}
+              </select>
+
+              <div style={{ position: 'relative', zIndex: showFilterLlegada ? 10 : 'auto' }}>
+                <DatePicker
+                  label="Desde"
+                  value={resFilterLlegada}
+                  onChange={v => { setResFilterLlegada(v); setShowFilterLlegada(false); }}
+                  isOpen={showFilterLlegada}
+                  onToggle={() => { setShowFilterLlegada(!showFilterLlegada); setShowFilterSalida(false); }}
+                />
+              </div>
+              <div style={{ position: 'relative', zIndex: showFilterSalida ? 10 : 'auto' }}>
+                <DatePicker
+                  label="Hasta"
+                  value={resFilterSalida}
+                  onChange={v => { setResFilterSalida(v); setShowFilterSalida(false); }}
+                  isOpen={showFilterSalida}
+                  onToggle={() => { setShowFilterSalida(!showFilterSalida); setShowFilterLlegada(false); }}
+                  minDate={resFilterLlegada}
+                />
+              </div>
+              
+              <select className="input-warm text-sm py-2 px-3" value={resSortOrder} onChange={e => setResSortOrder(e.target.value as 'desc' | 'asc')}>
+                <option value="desc">Más recientes</option>
+                <option value="asc">Más antiguas</option>
+              </select>
             </div>
 
             {loadingRes ? (
@@ -485,7 +703,7 @@ export default function AdminPage() {
               </p>
             ) : (
               <div className="space-y-3">
-                {reservations.map(res => (
+                {filteredReservations.map(res => (
                   <div key={res.id} className="p-5 rounded-2xl"
                     style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -693,22 +911,39 @@ export default function AdminPage() {
         ══════════════════════════ */}
         {activeTab === 'users' && (
           <div>
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="font-display"
-                style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--charcoal)' }}>
-                Usuarios <em>registrados</em>
-              </h2>
-              <span className="text-xs px-3 py-1 rounded-full"
-                style={{ backgroundColor: 'rgba(200,129,58,0.12)', color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
-                {users.length} total
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div>
+                <h2 className="font-display"
+                  style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--charcoal)' }}>
+                  Usuarios <em>registrados</em>
+                </h2>
+                <span className="text-xs px-3 py-1 rounded-full mt-2 inline-block"
+                  style={{ backgroundColor: 'rgba(200,129,58,0.12)', color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
+                  {filteredUsers.length} resultados
+                </span>
+              </div>
+              <button onClick={() => { setEditingUser(null); setUserForm({ nombre: '', apellido: '', email: '', telefono: '', role: 'user', password: '' }); setUserFormError(''); setUserModalOpen(true); }} className="btn-copper whitespace-nowrap w-full sm:w-auto">
+                + Agregar usuario
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-8 p-4 rounded-xl"
+              style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)'}}>
+              <input type="text" placeholder="Buscar por nombre o correo..." className="input-warm text-sm py-2 px-3 min-w-130 flex-1"
+                value={userSearch} onChange={e => setUserSearch(e.target.value)} />
+              
+              <select className="input-warm text-sm py-2 px-3 w-full sm:w-48" value={userFilterRole} onChange={e => setUserFilterRole(e.target.value)}>
+                <option value="">Todos los roles</option>
+                <option value="admin">Administrador</option>
+                <option value="user">Usuario</option>
+              </select>
             </div>
 
             {loadingUsers ? (
               <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Cargando...</p>
             ) : (
               <div className="space-y-3">
-                {users.map(u => (
+                {filteredUsers.map(u => (
                   <div key={u.id} className="p-4 rounded-2xl flex items-center gap-4"
                     style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
                     {/* Avatar */}
@@ -726,15 +961,20 @@ export default function AdminPage() {
                         {' · '}Registrado el {new Date(u.created_at).toLocaleDateString('es-MX')}
                       </p>
                     </div>
-                    {/* Badge de rol */}
-                    <span className="text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide shrink-0"
-                      style={{
-                        backgroundColor: u.role === 'admin' ? 'rgba(200,129,58,0.12)' : 'rgba(44,36,32,0.06)',
-                        color: u.role === 'admin' ? 'var(--copper)' : 'var(--text-muted)',
-                        fontFamily: 'var(--font-ui)',
-                      }}>
-                      {u.role ?? 'user'}
-                    </span>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className="text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide"
+                        style={{
+                          backgroundColor: u.role === 'admin' ? 'rgba(200,129,58,0.12)' : 'rgba(44,36,32,0.06)',
+                          color: u.role === 'admin' ? 'var(--copper)' : 'var(--text-muted)',
+                          fontFamily: 'var(--font-ui)',
+                        }}>
+                        {u.role ?? 'user'}
+                      </span>
+                      <div className="flex gap-2">
+                        <button onClick={() => { setEditingUser(u); setUserForm({ nombre: u.nombre||'', apellido: u.apellido||'', email: u.email||'', telefono: u.telefono||'', role: u.role||'user', password: u.password||'' }); setUserFormError(''); setUserModalOpen(true); }} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,129,58,0.1)', color: 'var(--copper)', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,129,58,0.2)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,129,58,0.2)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,129,58,0.1)'}>Editar</button>
+                        <button onClick={() => setDeleteUserId(u.id)} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,60,60,0.2)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.15)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.08)'}>Eliminar</button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -929,7 +1169,7 @@ export default function AdminPage() {
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-widest mb-2"
                   style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Descripción corta</label>
-                <input type="text" className="input-warm" placeholder="Vista panorámica al lago..."
+                <input type="text" className="input-warm" placeholder="Vista panorámica al manantial..."
                   value={roomForm.description}
                   onChange={e => setRoomForm(p => ({ ...p, description: e.target.value }))} />
               </div>
@@ -1063,6 +1303,208 @@ export default function AdminPage() {
                 style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'}
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          MODAL: AGREGAR RESERVACIÓN
+      ══════════════════════════════════════════ */}
+      {resModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(44,36,32,0.7)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-2xl rounded-2xl overflow-hidden"
+            style={{ backgroundColor: 'var(--cream)', boxShadow: 'var(--shadow-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="px-8 pt-8 pb-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--stone)' }}>
+              <h3 className="font-display text-xl" style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>Nueva reservación</h3>
+              <button onClick={() => setResModalOpen(false)} className="w-8 h-8 rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: 'rgba(44,36,32,0.08)', color: 'var(--charcoal)' }}>✕</button>
+            </div>
+            <div className="px-8 py-6 space-y-5">
+              <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+                <span className="text-sm font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>Huésped con cuenta registrada</span>
+                <button type="button" onClick={() => setResForm(p => ({ ...p, hasAccount: !p.hasAccount }))}
+                  className="w-10 h-6 rounded-full transition-colors relative shrink-0"
+                  style={{ backgroundColor: resForm.hasAccount ? 'var(--copper)' : 'var(--stone)' }}>
+                  <div className="w-4 h-4 rounded-full bg-white absolute top-1 transition-all"
+                    style={{ left: resForm.hasAccount ? '1.25rem' : '0.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                </button>
+              </div>
+              
+              {resForm.hasAccount ? (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Huésped</label>
+                  <select className="input-warm" value={resForm.user_id} onChange={e => setResForm(p => ({ ...p, user_id: e.target.value }))}>
+                    <option value="">Selecciona un huésped...</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>{u.nombre} {u.apellido} ({u.email})</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Nombre del huésped</label><input type="text" className="input-warm" value={resForm.guestName} onChange={e => setResForm(p => ({ ...p, guestName: e.target.value }))} /></div>
+                  <div><label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Teléfono</label><input type="text" className="input-warm" value={resForm.guestPhone} onChange={e => setResForm(p => ({ ...p, guestPhone: e.target.value }))} /></div>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Habitación</label>
+                <select className="input-warm" value={resForm.room_id} onChange={e => setResForm(p => ({ ...p, room_id: e.target.value }))}>
+                  <option value="">Selecciona una habitación...</option>
+                  {rooms.map(r => (
+                    <option key={r.id} value={r.id.toString()}>{r.title} - ${r.price}/noche</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3" style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', zIndex: showLlegada ? 100 : 1 }} ref={resLlegadaRef}>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Llegada</label>
+                  <DatePicker
+                    label="Llegada"
+                    value={resForm.fecha_llegada}
+                    onChange={v => { setResForm(p => ({ ...p, fecha_llegada: v })); setShowLlegada(false); }}
+                    isOpen={showLlegada}
+                    onToggle={() => {
+                      const opening = !showLlegada;
+                      setShowLlegada(opening);
+                      setShowSalida(false);
+                      if (opening) setTimeout(() => resLlegadaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                    }}
+                  />
+                </div>
+                <div style={{ position: 'relative', zIndex: showSalida ? 100 : 1 }} ref={resSalidaRef}>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Salida</label>
+                  <DatePicker
+                    label="Salida"
+                    value={resForm.fecha_salida}
+                    onChange={v => { setResForm(p => ({ ...p, fecha_salida: v })); setShowSalida(false); }}
+                    isOpen={showSalida}
+                    onToggle={() => {
+                      const opening = !showSalida;
+                      setShowSalida(opening);
+                      setShowLlegada(false);
+                      if (opening) setTimeout(() => resSalidaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                    }}
+                    minDate={resForm.fecha_llegada}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Método de pago</label>
+                  <select className="input-warm" value={resForm.metodo_pago} onChange={e => setResForm(p => ({ ...p, metodo_pago: e.target.value }))}>
+                    <option value="cash">Pago en recepción</option>
+                    <option value="transfer">Transferencia</option>
+                    <option value="card">Tarjeta</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Estado inicial</label>
+                  <select className="input-warm" value={resForm.estado} onChange={e => setResForm(p => ({ ...p, estado: e.target.value }))}>
+                    <option value="confirmada">Confirmada</option>
+                    <option value="pagada">Pagada</option>
+                    <option value="completada">Completada</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            {resFormError && (
+              <div className="px-8 pb-4">
+                <p className="text-sm p-3 rounded-lg" style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', border: '1px solid rgba(200,60,60,0.2)', fontFamily: 'var(--font-ui)' }}>{resFormError}</p>
+              </div>
+            )}
+            <div className="px-8 pb-8 flex gap-3">
+              <button onClick={handleSaveRes} className="btn-copper flex-1 text-center">Crear reservación</button>
+              <button onClick={() => setResModalOpen(false)} className="px-6 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          MODAL: AGREGAR / EDITAR USUARIO
+      ══════════════════════════════════════════ */}
+      {userModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(44,36,32,0.7)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-2xl rounded-2xl overflow-hidden"
+            style={{ backgroundColor: 'var(--cream)', boxShadow: 'var(--shadow-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="px-8 pt-8 pb-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--stone)' }}>
+              <h3 className="font-display text-xl" style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+                {editingUser ? 'Editar usuario' : 'Nuevo usuario'}
+              </h3>
+              <button onClick={() => setUserModalOpen(false)} className="w-8 h-8 rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: 'rgba(44,36,32,0.08)', color: 'var(--charcoal)' }}>✕</button>
+            </div>
+            <div className="px-8 py-6 space-y-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Nombre</label>
+                  <input type="text" className="input-warm" value={userForm.nombre} onChange={e => setUserForm(p => ({ ...p, nombre: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Apellido</label>
+                  <input type="text" className="input-warm" value={userForm.apellido} onChange={e => setUserForm(p => ({ ...p, apellido: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Correo electrónico</label>
+                  <input type="email" className="input-warm" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Teléfono</label>
+                  <input type="text" className="input-warm" value={userForm.telefono} onChange={e => setUserForm(p => ({ ...p, telefono: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Rol</label>
+                  <select className="input-warm" value={userForm.role} onChange={e => setUserForm(p => ({ ...p, role: e.target.value }))}>
+                    <option value="user">Usuario</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Contraseña {editingUser && '(Opcional)'}</label>
+                  <input type="password" className="input-warm" placeholder={editingUser ? 'Dejar en blanco para no cambiar' : ''} value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+            {userFormError && (
+              <div className="px-8 pb-4">
+                <p className="text-sm p-3 rounded-lg" style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', border: '1px solid rgba(200,60,60,0.2)', fontFamily: 'var(--font-ui)' }}>{userFormError}</p>
+              </div>
+            )}
+            <div className="px-8 pb-8 flex gap-3">
+              <button onClick={handleSaveUser} className="btn-copper flex-1 text-center">Guardar usuario</button>
+              <button onClick={() => setUserModalOpen(false)} className="px-6 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          MODAL: CONFIRMAR ELIMINACIÓN DE USUARIO
+      ══════════════════════════════════════════ */}
+      {deleteUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(44,36,32,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm p-8 rounded-2xl"
+            style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', boxShadow: 'var(--shadow-lg)' }}>
+            <h3 className="font-display text-xl mb-3" style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+              ¿Eliminar usuario?
+            </h3>
+            <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+              Esta acción no se puede deshacer. Las reservaciones asociadas podrían quedar sin usuario asignado.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={handleDeleteUser} className="btn-copper flex-1 text-center" style={{ backgroundColor: '#c03c3c', boxShadow: 'none' }}>
+                Sí, eliminar
+              </button>
+              <button onClick={() => setDeleteUserId(null)} className="flex-1 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}>
                 Cancelar
               </button>
             </div>

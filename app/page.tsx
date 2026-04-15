@@ -16,7 +16,7 @@ const bannerImages = [
 ];
 
 const features = [
-  { icon: '🌊', title: 'Frente al Lago',    description: 'Despierta cada mañana con la vista al Lago directamente desde tu habitación.' },
+  { icon: '🌊', title: 'Frente al Manantial',    description: 'Despierta cada mañana con la vista al manantial directamente desde tu habitación.' },
   { icon: '🏺', title: 'Arte Local',        description: 'Cada rincón está decorado con artesanía purépecha auténtica, seleccionada por maestros artesanos.' },
   { icon: '🍽️', title: 'Gastronomía',      description: 'Sabores michoacanos de autor: cocina de temporada con ingredientes locales y recetas heredadas.' },
 ];

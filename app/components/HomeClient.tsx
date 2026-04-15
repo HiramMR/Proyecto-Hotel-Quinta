@@ -303,7 +303,7 @@ export default function HomeClient({ bannerImages, featuredRooms, features }: Ho
           </h1>
           <p className={`transition-all duration-900 max-w-xl text-base md:text-lg leading-relaxed mb-10 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             style={{ fontFamily: 'var(--font-body)', color: 'rgba(245,240,232,0.8)', fontStyle: 'italic', transitionDelay: '300ms' }}>
-            Donde el lago, la piedra y el silencio se convierten en tu hogar.
+            Donde el manantial, la piedra y el silencio se convierten en tu hogar.
           </p>
           <div className={`transition-all duration-700 flex gap-3 md:gap-4 flex-wrap justify-center ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             style={{ transitionDelay: '450ms' }}>
@@ -468,7 +468,7 @@ export default function HomeClient({ bannerImages, featuredRooms, features }: Ho
             <div className="rounded-2xl overflow-hidden relative z-10" style={{ border: '1px solid var(--stone)', boxShadow: 'var(--shadow-md)', backgroundColor: 'var(--cream)' }}>
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d892.3849592410616!2d-101.58898885849402!3d19.846965466511364!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1ses-419!2smx!4v1774144472322!5m2!1ses-419!2smx"
-                width="1024"
+                width="100%"
                 height="450"
                 style={{ border: 0 }}
                 allowFullScreen

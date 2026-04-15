@@ -297,78 +297,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── LIGHTBOX ── */}
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
-          style={{ backgroundColor: 'rgba(20,14,12,0.92)', backdropFilter: 'blur(8px)' }}
-          onClick={() => setLightbox(null)}>
-          <div className="relative max-w-4xl w-full" onClick={e => e.stopPropagation()}>
-            <img src={lightbox} alt="Quinta Dalam"
-              className="w-full object-contain rounded-2xl"
-              style={{ maxHeight: '85vh', boxShadow: '0 32px 80px rgba(0,0,0,0.7)' }} />
-          </div>
-          <button onClick={() => setLightbox(null)}
-            className="absolute top-5 right-5 w-10 h-10 rounded-full flex items-center justify-center transition-all"
-            style={{ backgroundColor: 'rgba(245,240,232,0.15)', color: '#fff' }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(245,240,232,0.28)'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(245,240,232,0.15)'}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* ── NUESTRA TRAYECTORIA ── */}
-      <section className="py-20" style={{ backgroundColor: 'var(--wood-dark)' }}>
-        <div className="container mx-auto px-6 max-w-3xl">
-          <Reveal direction="up">
-            <p className="text-xs uppercase tracking-[0.25em] mb-3 text-center" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
-              Nuestra trayectoria
-            </p>
-            <h2 className="font-display text-center mb-4" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem,3vw,2.5rem)', fontWeight: 400, color: 'var(--cream)' }}>
-              Un proyecto que <em>sobrevivió</em>
-            </h2>
-            <p className="text-sm text-center mb-12 max-w-2xl mx-auto" style={{ fontFamily: 'var(--font-body)', color: 'rgba(245,240,232,0.6)', fontStyle: 'italic' }}>
-              La historia de Quinta Dalam fue contada por la prensa michoacana. Aquí te compartimos un fragmento.
-            </p>
-          </Reveal>
-
-          <Reveal direction="up" delay={100}>
-            <div className="relative p-8 md:p-10"
-              style={{ backgroundColor: 'rgba(245,240,232,0.05)', border: '1px solid rgba(200,129,58,0.25)', borderRadius: '4px 24px 4px 24px' }}>
-              {/* Comilla decorativa */}
-              <div className="absolute -top-5 left-8 text-6xl leading-none"
-                style={{ color: 'var(--copper)', fontFamily: 'var(--font-display)', opacity: 0.6 }}>
-                "
-              </div>
-              <div className="space-y-4 text-sm leading-relaxed" style={{ fontFamily: 'var(--font-body)', color: 'rgba(245,240,232,0.75)', fontStyle: 'italic' }}>
-                <p>
-                  Quencio es un pueblito pintoresco de Michoacán, tiene un hermoso nacimiento de agua que es visitado por personas de la localidad pero que aún no tiene una vocación turística importante en la entidad, pero esto no limitó el sueño de una familia para construir una joya de arquitectura. Aquí surge Quinta Dalam.
-                </p>
-                <p>
-                  Daniel, un joven visionario, tuvo el acompañamiento de su señor padre, y juntos comenzaron el proyecto de un hogar que después cambiaría su vocación a un hotel, sin el afán de buscar un tema lucrativo, sino de dejar una huella positiva en la sociedad.
-                </p>
-                <p>
-                  Quinta Dalam comenzó antes de la pandemia de COVID-19, y sobrevivió, pero tristemente Daniel y Laura fueron víctimas mortales de esta terrible enfermedad, lo que dejó luto y dolor en la familia Medina.
-                </p>
-                <p>
-                  En un acto de amor y desde el corazón, Roberto continuó la construcción del inmueble, retomando las ideas de su hijo, plasmando en cada habitación un poco de Michoacán y un mucho del gran espíritu familiar.
-                </p>
-              </div>
-              {/* Autor */}
-              <div className="mt-6 pt-5 flex items-center gap-3" style={{ borderTop: '1px solid rgba(200,129,58,0.2)' }}>
-                <div className="w-8 h-px" style={{ backgroundColor: 'var(--copper)' }} />
-                <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--copper)', fontFamily: 'var(--font-ui)' }}>
-                  César Hernández · César Hdz Noti
-                </p>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
       {/* ── TESTIMONIOS ── */}
       <section className="py-20" style={{ backgroundColor: 'var(--cream-dark)' }}>
         <div className="container mx-auto px-6 max-w-5xl">
@@ -414,15 +342,6 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
-
-          {/* Nota de testimonios de ejemplo */}
-          {approvedTestimonios.length <= 4 && (
-            <Reveal direction="up" delay={200}>
-              <p className="text-xs text-center mt-10 italic" style={{ color: 'var(--text-light)', fontFamily: 'var(--font-ui)' }}>
-                * Testimonios de ejemplo. Próximamente compartiremos las experiencias reales de nuestros primeros huéspedes.
-              </p>
-            </Reveal>
-          )}
 
           {/* Formulario para dejar testimonio */}
           <Reveal direction="up" delay={150}>
