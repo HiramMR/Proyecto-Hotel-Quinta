@@ -267,7 +267,8 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
 
   const [blockedRanges, setBlockedRanges] = useState<{ from: string; to: string }[]>([]);
 
-  useEffect(() => {
+ useEffect(() => {
+  const loadBlocked = () => {
     const stored = localStorage.getItem('reservations');
     if (stored) {
       try {
@@ -280,7 +281,17 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
         console.error(err);
       }
     }
-  }, [room.id]);
+  };
+
+  loadBlocked();
+
+  const handleStorageChange = (e: StorageEvent) => {
+    if (e.key === 'reservations') loadBlocked();
+  };
+
+  window.addEventListener('storage', handleStorageChange);
+  return () => window.removeEventListener('storage', handleStorageChange);
+}, [room.id]);
 
   const nights = calcNights(llegada, salida);
   const total  = room.price * nights;
