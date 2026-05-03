@@ -6,7 +6,7 @@
 // ============================================================
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams} from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
 import Link from 'next/link'
@@ -278,7 +278,7 @@ function ProfileForm({ user, profile, onSaved }: {
   )
 }
 
-export default function AccountPage() {
+function AccountContent() {
   const { user, profile, loading, signOut } = useAuth()
   const router = useRouter()
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -842,5 +842,13 @@ export default function AccountPage() {
         </div>
       )}
     </main>
+  )
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={<main style={{ backgroundColor: 'var(--cream)', minHeight: '100vh' }}></main>}>
+      <AccountContent />
+    </Suspense>
   )
 }

@@ -10,7 +10,7 @@ export default async function RoomsPage() {
       </h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {rooms.map((room) => (
+        {rooms.map((room: any) => (
           <div key={room.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
             <div className="relative h-48 w-full bg-gray-200">
               {/* Ensure you have images in public/img/carrusel/ or replace with a placeholder */}
