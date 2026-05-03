@@ -14,6 +14,9 @@ import Image from 'next/image';
 import Carousel from './Carousel';
 import DatePicker from './DatePicker';
 import { useAuth } from '../../lib/auth-context';
+import { supabase } from '../../lib/supabase';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 interface AmenityItem { name: string; icon: React.ReactNode; }
 
@@ -37,6 +40,8 @@ interface RoomModalProps {
   onClose: () => void;
   amenitiesList: AmenityItem[];
 }
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 function formatDate(dateStr: string) {
   if (!dateStr) return 'No seleccionada';
@@ -186,6 +191,48 @@ function SuccessStep({ room, llegada, salida, nights, total, metodoPago, loggedU
   );
 }
 
+function CheckoutForm({ total, onSuccess, reservationId }: { total: number, onSuccess: () => void, reservationId: number }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [error, setError] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setProcessing(true);
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      setError(submitError.message ?? 'Error al validar los datos de la tarjeta.');
+      setProcessing(false);
+      return;
+    }
+
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      redirect: 'if_required',
+    });
+
+    if (confirmError) {
+      setError(confirmError.message ?? 'Error al procesar el pago.');
+      setProcessing(false);
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      await supabase.from('reservations').update({ estado: 'pagada', payment_intent_id: paymentIntent.id }).eq('id', reservationId);
+      setProcessing(false);
+      onSuccess();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-2 space-y-4">
+      <PaymentElement options={{ layout: 'tabs' }} />
+      {error && <p className="text-xs p-3 rounded-lg" style={{ backgroundColor: 'rgba(200,60,60,0.08)', border: '1px solid rgba(200,60,60,0.2)', color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>{error}</p>}
+      <button type="submit" disabled={!stripe || processing} className="btn-copper w-full" style={{ opacity: (!stripe || processing) ? 0.7 : 1 }}>{processing ? 'Procesando pago...' : `Pagar $${total} MXN`}</button>
+    </form>
+  );
+}
+
 function ReservationSummary({ room, llegada, salida, nights, total, stars }: {
   room: Room; llegada: string; salida: string; nights: number; total: number; stars: number;
 }) {
@@ -247,12 +294,20 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
 
   const [reviewIndex, setReviewIndex] = useState(0);
   const [reviews, setReviews] = useState<any[]>([]);
+
   useEffect(() => {
-    const stored = localStorage.getItem('room_reviews');
-    if (stored) {
-      try { setReviews(JSON.parse(stored)); } catch (e) {}
-    }
-  }, []);
+    const fetchReviews = async () => {
+      const { data } = await supabase
+        .from('reservations')
+        .select('room_rating, room_review, fecha_salida, profiles(nombre)')
+        .eq('room_id', room.id)
+        .not('room_rating', 'is', null);
+      if (data) {
+        setReviews(data.map((r: any) => ({ rating: r.room_rating, comment: r.room_review, user_name: r.profiles?.nombre || 'Huésped', date: r.fecha_salida, room_id: room.id })));
+      }
+    };
+    fetchReviews();
+  }, [room.id]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -268,29 +323,19 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   const [blockedRanges, setBlockedRanges] = useState<{ from: string; to: string }[]>([]);
 
  useEffect(() => {
-  const loadBlocked = () => {
-    const stored = localStorage.getItem('reservations');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const roomRes = parsed.filter((r: any) =>
-          r.room_id === room.id && ['confirmada', 'pagada'].includes(r.estado)
-        );
-        setBlockedRanges(roomRes.map((r: any) => ({ from: r.fecha_llegada, to: r.fecha_salida })));
-      } catch (err) {
-        console.error(err);
-      }
+  const loadBlocked = async () => {
+    const { data } = await supabase
+      .from('reservations')
+      .select('fecha_llegada, fecha_salida')
+      .eq('room_id', room.id)
+      .in('estado', ['confirmada', 'pagada']);
+      
+    if (data) {
+      setBlockedRanges(data.map(r => ({ from: r.fecha_llegada, to: r.fecha_salida })));
     }
   };
 
   loadBlocked();
-
-  const handleStorageChange = (e: StorageEvent) => {
-    if (e.key === 'reservations') loadBlocked();
-  };
-
-  window.addEventListener('storage', handleStorageChange);
-  return () => window.removeEventListener('storage', handleStorageChange);
 }, [room.id]);
 
   const nights = calcNights(llegada, salida);
@@ -335,9 +380,6 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     };
   }, [handleClose, lightboxImg]);
 
-  // ✅ cardData declarado UNA sola vez
-  const [cardData, setCardData] = useState({ numero: '', nombre: '', expiry: '', cvv: '' });
-
   const [clientSecret, setClientSecret]   = useState('');
   const [reservationId, setReservationId] = useState<number | null>(null);
 
@@ -349,9 +391,14 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
     setSavingError('');
 
     try {
-      setTimeout(() => {
-        const newRes = {
-          id: Date.now(),
+      if (reservationId) {
+        const { error } = await supabase.from('reservations').update({
+          metodo_pago: selectedPayment,
+          estado: 'confirmada'
+        }).eq('id', reservationId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from('reservations').insert({
           user_id: user.id,
           room_id: room.id,
           fecha_llegada: llegada,
@@ -359,18 +406,14 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
           noches: nights,
           total: total,
           metodo_pago: selectedPayment,
-          estado: 'confirmada',
-          created_at: new Date().toISOString(),
-          profiles: { nombre: loggedUser.nombre, apellido: '', telefono: '' },
-          rooms: { title: room.title, images: room.images }
-        };
-        const stored = localStorage.getItem('reservations');
-        const parsed = stored ? JSON.parse(stored) : [];
-        parsed.push(newRes);
-        localStorage.setItem('reservations', JSON.stringify(parsed));
-        setSaving(false);
-        setStep('success');
-      }, 1000);
+          estado: 'confirmada'
+        }).select('id').single();
+        if (error) throw error;
+        if (data) setReservationId(data.id);
+      }
+      
+      setSaving(false);
+      setStep('success');
     } catch {
       setSavingError('Error de conexión. Intenta de nuevo.');
       setSaving(false);
@@ -381,45 +424,52 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
   const handlePrepareCardPayment = async () => {
     if (!user) return;
 
-    // Validaciones
-    if (cardData.numero.replace(/\D/g, '').length !== 16) {
-      setSavingError('El número de tarjeta debe tener 16 dígitos.');
-      return;
-    }
-    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardData.expiry)) {
-      setSavingError('La fecha de expiración debe tener el formato MM/YY.');
-      return;
-    }
-    if (!/^\d{3,4}$/.test(cardData.cvv)) {
-      setSavingError('El CVC debe tener 3 o 4 dígitos.');
-      return;
-    }
-
     setSaving(true);
     setSavingError('');
 
-    setTimeout(() => {
-      const newRes = {
-        id: Date.now(),
-        user_id: user.id,
-        room_id: room.id,
-        fecha_llegada: llegada,
-        fecha_salida: salida,
-        noches: nights,
-        total: total,
-        metodo_pago: 'card',
-        estado: 'pagada',
-        created_at: new Date().toISOString(),
-        profiles: { nombre: loggedUser.nombre, apellido: '', telefono: '' },
-        rooms: { title: room.title, images: room.images }
-      };
-      const stored = localStorage.getItem('reservations');
-      const parsed = stored ? JSON.parse(stored) : [];
-      parsed.push(newRes);
-      localStorage.setItem('reservations', JSON.stringify(parsed));
+    try {
+      let resId = reservationId;
+
+      if (resId) {
+        const { error } = await supabase.from('reservations').update({
+          fecha_llegada: llegada,
+          fecha_salida: salida,
+          noches: nights,
+          total: total,
+          metodo_pago: 'card'
+        }).eq('id', resId);
+        if (error) throw new Error('Error al actualizar la reservación.');
+      } else {
+        const { data: resData, error } = await supabase.from('reservations').insert({
+          user_id: user.id,
+          room_id: room.id,
+          fecha_llegada: llegada,
+          fecha_salida: salida,
+          noches: nights,
+          total: total,
+          metodo_pago: 'card',
+          estado: 'confirmada'
+        }).select('id').single();
+        if (error || !resData) throw new Error('Error al crear la reservación.');
+        resId = resData.id;
+        setReservationId(resId);
+      }
+      
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total, reservationId: resId }),
+      });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Error al conectar con Stripe.');
+      
+      setClientSecret(data.clientSecret);
+    } catch (err: any) {
+      setSavingError(err.message || 'Error al iniciar el pago. Intenta de nuevo.');
+    } finally {
       setSaving(false);
-      setStep('success');
-    }, 1500);
+    }
   };
 
   // Desplazar al inicio del modal únicamente cuando se cambia de paso
@@ -682,7 +732,7 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
               ══════════════════════════════════════════ */}
           {step === 'booking' && (
             <div className="p-8">
-              <button onClick={() => setStep('detail')}
+              <button onClick={() => { setStep('detail'); setSelectedPayment(null); setClientSecret(''); }}
                 className="flex items-center gap-2 text-xs mb-6 transition-colors"
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--copper)'}
@@ -755,7 +805,10 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                         { id: 'cash',     label: 'Pago en recepción al llegar', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33" /></svg> },
                       ].map(opt => (
                         <button key={opt.id} type="button"
-                          onClick={() => setSelectedPayment(opt.id as 'card' | 'transfer' | 'cash')}
+                          onClick={() => {
+                            setSelectedPayment(opt.id as 'card' | 'transfer' | 'cash');
+                            if (opt.id === 'card' && !clientSecret && !saving) handlePrepareCardPayment();
+                          }}
                           className="w-full flex items-center gap-3 p-3.5 rounded-lg text-sm text-left transition-all duration-200"
                           style={{
                             border: `1.5px solid ${selectedPayment === opt.id ? 'var(--copper)' : 'var(--stone)'}`,
@@ -778,26 +831,38 @@ export default function RoomModal({ room, llegada: llegadaProp, salida: salidaPr
                     {/* ── TARJETA: Formulario real de Stripe ── */}
                     {selectedPayment === 'card' && (
                       <div className="mb-4">
-                        <div className="p-4 rounded-lg mb-4 space-y-3" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
-                          <input type="text" className="input-warm" placeholder="Número de tarjeta (Simulado)" 
-                            value={cardData.numero} onChange={e => setCardData({...cardData, numero: e.target.value})} />
-                          <div className="flex gap-2">
-                            <input type="text" className="input-warm w-1/2" placeholder="MM/YY" 
-                              value={cardData.expiry} onChange={e => setCardData({...cardData, expiry: e.target.value})} />
-                            <input type="text" className="input-warm w-1/2" placeholder="CVC" 
-                              value={cardData.cvv} onChange={e => setCardData({...cardData, cvv: e.target.value})} />
+                        {!clientSecret ? (
+                          <div className="p-8 text-center text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
+                            {savingError ? (
+                              <div className="flex flex-col items-center gap-3">
+                                <p style={{ color: '#c03c3c' }}>{savingError}</p>
+                                <button type="button" onClick={handlePrepareCardPayment} className="btn-outline" style={{ color: 'var(--charcoal)', borderColor: 'var(--stone)' }}>Reintentar conexión</button>
+                              </div>
+                            ) : (
+                              <span className="animate-pulse">Conectando de forma segura con Stripe...</span>
+                            )}
                           </div>
-                        </div>
-                        <button type="button" onClick={handlePrepareCardPayment}
-                          className="btn-copper w-full text-center"
-                          disabled={saving || !cardData.numero || !cardData.expiry || !cardData.cvv}
-                          style={{ opacity: (saving || !cardData.numero || !cardData.expiry || !cardData.cvv) ? 0.7 : 1, cursor: (saving || !cardData.numero || !cardData.expiry || !cardData.cvv) ? 'not-allowed' : 'pointer' }}>
-                          {saving ? 'Procesando pago...' : 'Pagar ahora'}
-                        </button>
-                        {(!cardData.numero || !cardData.expiry || !cardData.cvv) && (
-                          <p className="text-xs text-center mt-2" style={{ color: '#c03c3c', fontFamily: 'var(--font-ui)' }}>
-                            Completa los datos de la tarjeta para continuar
-                          </p>
+                        ) : (
+                          <div className="p-5 rounded-xl" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
+                        <Elements 
+                          stripe={stripePromise} 
+                          options={{ 
+                            clientSecret, 
+                            appearance: { 
+                              theme: 'flat', 
+                              variables: { 
+                                colorPrimary: '#C8813A', 
+                                colorBackground: '#F5F0E8', 
+                                colorText: '#2C2420', 
+                                fontFamily: '"DM Sans", system-ui, sans-serif' 
+                              } 
+                            },
+                            fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap' }]
+                          }}
+                        >
+                              <CheckoutForm total={total} reservationId={reservationId!} onSuccess={() => setStep('success')} />
+                            </Elements>
+                          </div>
                         )}
                       </div>
                     )}

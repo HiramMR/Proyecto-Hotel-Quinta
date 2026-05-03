@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams} from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
 import Link from 'next/link'
+import { supabase } from '../../lib/supabase'
 
 interface Reservation {
   id: number
@@ -26,6 +27,8 @@ interface Reservation {
   refund_id?: string | null
   refund_requested?: boolean
   comprobante_url: string | null
+  room_rating?: number | null
+  room_review?: string | null
   profiles?: { nombre: string | null; apellido: string | null; telefono: string | null }
   rooms: {
     title: string
@@ -60,75 +63,6 @@ const estadoTextColor: Record<string, string> = {
   completada: '#3ca050',
   reembolsada: 'var(--text-muted)',
 }
-
-const defaultReservations: Reservation[] = [
-  {
-    id: 1, user_id: '2', room_id: 1,
-    fecha_llegada: new Date(Date.now() - 86400000 * 20).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
-    noches: 5, total: 7250, metodo_pago: 'card', estado: 'confirmada',
-    created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: false,
-    comprobante_url: null,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  },
-  {
-    id: 2, user_id: '2', room_id: 2,
-    fecha_llegada: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 13).toISOString().split('T')[0],
-    noches: 2, total: 2600, metodo_pago: 'transfer', estado: 'pagada',
-    created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: false,
-    comprobante_url: 'uploaded',
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Paracho', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  },
-  {
-    id: 3, user_id: '2', room_id: 3,
-    fecha_llegada: new Date(Date.now() - 86400000 * 10).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 8).toISOString().split('T')[0],
-    noches: 2, total: 2400, metodo_pago: 'cash', estado: 'completada',
-    created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: false,
-    comprobante_url: null,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Yunuén', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 5 }
-  },
-  {
-    id: 4, user_id: '2', room_id: 4,
-    fecha_llegada: new Date(Date.now() - 86400000 * 5).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 3).toISOString().split('T')[0],
-    noches: 2, total: 3000, metodo_pago: 'transfer', estado: 'cancelada',
-    created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: true,
-    comprobante_url: null,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Pátzcuaro', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  },
-  {
-    id: 5, user_id: '2', room_id: 5,
-    fecha_llegada: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0],
-    noches: 1, total: 1100, metodo_pago: 'card', estado: 'reembolsada',
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-    payment_intent_id: null, refund_id: 're_123', refund_requested: false,
-    comprobante_url: null,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Coeneo', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  },
-  {
-    id: 6, user_id: '3', room_id: 1,
-    fecha_llegada: new Date(Date.now() - 86400000 * 30).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 27).toISOString().split('T')[0],
-    noches: 3, total: 4350, metodo_pago: 'card', estado: 'completada',
-    created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: false,
-    comprobante_url: null,
-    profiles: { nombre: 'María', apellido: 'Gómez', telefono: '555-5678' },
-    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  }
-]
 
 // ── Formulario de edición de perfil ──
 function ProfileForm({ user, profile, onSaved }: {
@@ -195,26 +129,20 @@ function ProfileForm({ user, profile, onSaved }: {
     setSaveSuccess(false)
 
     const now = new Date().toISOString()
-    const storedUsers = localStorage.getItem('users')
-    if (storedUsers) {
-      try {
-        const parsedUsers = JSON.parse(storedUsers)
-        const updatedUsers = parsedUsers.map((u: any) => {
-          if (u.id === user.id) {
-            return {
-              ...u,
-              nombre: form.nombre.trim(),
-              apellido: form.apellido.trim() || null,
-              telefono: form.telefono.trim() || null,
-              last_profile_update: now,
-            }
-          }
-          return u
-        })
-        localStorage.setItem('users', JSON.stringify(updatedUsers))
-      } catch (e) {
-        console.error(e)
-      }
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        nombre: form.nombre.trim(),
+        apellido: form.apellido.trim() || null,
+        telefono: form.telefono.trim() || null,
+        last_profile_update: now,
+      })
+      .eq('id', user.id)
+
+    if (error) {
+      setSaveError('Hubo un error al actualizar el perfil.')
+      setSaving(false)
+      return
     }
 
     setLastUpdate(new Date(now))
@@ -383,29 +311,18 @@ export default function AccountPage() {
   // Cargar reservaciones del usuario
   useEffect(() => {
     if (!user) return
-    const stored = localStorage.getItem('reservations')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        const userRes = parsed.filter((r: any) => r.user_id === user.id)
-        userRes.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-        setReservations(userRes)
-      } catch (e) { console.error(e) }
-    } else {
-      localStorage.setItem('reservations', JSON.stringify(defaultReservations))
-      const userRes = defaultReservations.filter((r: any) => r.user_id === user.id)
-      userRes.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-      setReservations(userRes)
-    }
-    setLoadingRes(false)
+    const fetchReservations = async () => {
+      const { data } = await supabase
+        .from('reservations')
+        .select('*, rooms(title, images, stars)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (data) setReservations(data);
+      setLoadingRes(false);
+    };
+    fetchReservations();
   }, [user])
-
-  useEffect(() => {
-    const stored = localStorage.getItem('room_reviews')
-    if (stored) {
-      try { setReviews(JSON.parse(stored)) } catch (e) {}
-    }
-  }, [])
 
   // ── Verifica si faltan más de 48h para el check-in ──
   const canCancel = (fechaLlegada: string) => {
@@ -421,45 +338,28 @@ export default function AccountPage() {
     if (!cancelingId) return
     setCanceling(true)
 
-    setTimeout(() => {
-      const storedRes = localStorage.getItem('reservations')
-      let refunded = false
-      if (storedRes) {
-        try {
-          const parsedRes = JSON.parse(storedRes)
-          const updatedRes = parsedRes.map((r: any) => {
-            if (r.id === cancelingId) {
-              refunded = r.metodo_pago === 'card'
-              return { ...r, estado: refunded ? 'reembolsada' : 'cancelada', refund_requested: !refunded }
-            }
-            return r
-          })
-          localStorage.setItem('reservations', JSON.stringify(updatedRes))
-        } catch (e) { console.error(e) }
-      }
+    const resToCancel = reservations.find(r => r.id === cancelingId)
+    const refunded = resToCancel?.metodo_pago === 'card'
+    const nuevoEstado = refunded ? 'reembolsada' : 'cancelada'
 
-      // Actualizar estado local
-      setReservations(prev =>
-        prev.map(r => r.id === cancelingId ? { ...r, estado: refunded ? 'reembolsada' : 'cancelada' } : r)
-      )
+    const { error } = await supabase
+      .from('reservations')
+      .update({ estado: nuevoEstado, refund_requested: !refunded })
+      .eq('id', cancelingId)
 
-      // Mensaje según método de pago
+    if (!error) {
+      setReservations(prev => prev.map(r => r.id === cancelingId ? { ...r, estado: nuevoEstado } : r))
+
       if (refunded) {
-        setCancelResult({
-          success: true,
-          message: 'Reservación cancelada. El reembolso se procesará en 5-10 días hábiles en tu tarjeta.',
-        })
+        setCancelResult({ success: true, message: 'Reservación cancelada. El reembolso se procesará en 5-10 días hábiles en tu tarjeta.' })
       } else {
-        setCancelResult({
-          success: true,
-          message: 'Reservación cancelada. Un representante del hotel se pondrá en contacto contigo para gestionar el reembolso.',
-        })
+        setCancelResult({ success: true, message: 'Reservación cancelada. Un representante del hotel se pondrá en contacto contigo para gestionar el reembolso.' })
       }
+    }
 
     setCanceling(false)
     setConfirmOpen(false)
     setCancelingId(null)
-    }, 800)
   }
 
   // ── Subir comprobante de transferencia ──
@@ -468,19 +368,16 @@ export default function AccountPage() {
     setUploadingId(reservationId)
     setUploadResult(null)
 
-    setTimeout(() => {
-      const storedRes = localStorage.getItem('reservations')
-      if (storedRes) {
-        try {
-          const parsedRes = JSON.parse(storedRes)
-          const updatedRes = parsedRes.map((r: any) => r.id === reservationId ? { ...r, comprobante_url: 'uploaded' } : r)
-          localStorage.setItem('reservations', JSON.stringify(updatedRes))
-        } catch (e) { console.error(e) }
-      }
+    const { error } = await supabase
+      .from('reservations')
+      .update({ comprobante_url: 'uploaded' })
+      .eq('id', reservationId)
+      
+    if (!error) {
       setUploadResult({ id: reservationId, success: true, message: 'Comprobante enviado correctamente. El hotel lo revisará pronto.' })
       setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, comprobante_url: 'uploaded' } : r))
-      setUploadingId(null)
-    }, 1000)
+    }
+    setUploadingId(null)
   }
 
   if (loading || !user) return null
@@ -739,9 +636,8 @@ export default function AccountPage() {
                           {/* Valorar habitación si ya terminó */}
                           {(() => {
                             const isFinished = res.estado === 'completada' || (['confirmada', 'pagada'].includes(res.estado) && res.fecha_salida < new Date().toISOString().split('T')[0]);
-                            const existingReview = reviews.find(r => r.reservation_id === res.id);
                             
-                            if (isFinished && !existingReview) {
+                            if (isFinished && !res.room_rating) {
                               if (reviewingId === res.id) {
                                 return (
                                   <div className="p-4 rounded-xl mt-2 space-y-3" style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--copper)' }}>
@@ -758,18 +654,23 @@ export default function AccountPage() {
                                     <textarea className="input-warm text-xs resize-none" rows={3} placeholder="¿Qué te pareció tu estancia?" value={reviewForm.comment} onChange={e => setReviewForm({...reviewForm, comment: e.target.value})} />
                                     {reviewError && <p className="text-[10px]" style={{ color: '#c03c3c' }}>{reviewError}</p>}
                                     <div className="flex gap-2">
-                                      <button className="btn-copper flex-1 py-2 text-[11px]" onClick={() => {
+                                      <button className="btn-copper flex-1 py-2 text-[11px]" onClick={async () => {
                                         if (reviewForm.comment.trim().length < 10 || reviewForm.comment.trim().length > 500) {
                                           setReviewError('Tu reseña debe tener entre 10 y 500 caracteres.')
                                           return
                                         }
                                         setReviewError('')
-                                        const stored = localStorage.getItem('room_reviews') || '[]'
-                                        const parsed = JSON.parse(stored)
-                                        parsed.push({ reservation_id: res.id, room_id: res.room_id, user_id: user?.id, user_name: displayName, rating: reviewForm.rating, comment: reviewForm.comment, date: new Date().toISOString() })
-                                        localStorage.setItem('room_reviews', JSON.stringify(parsed))
-                                        setReviews(parsed)
-                                        setReviewingId(null)
+                                    const { error } = await supabase.from('reservations').update({
+                                      room_rating: reviewForm.rating,
+                                      room_review: reviewForm.comment
+                                    }).eq('id', res.id);
+
+                                    if (!error) {
+                                      setReservations(prev => prev.map(r => r.id === res.id ? { ...r, room_rating: reviewForm.rating, room_review: reviewForm.comment } : r));
+                                      setReviewingId(null);
+                                    } else {
+                                      setReviewError('Error al enviar la valoración.');
+                                    }
                                       }}>Enviar valoración</button>
                                       <button className="flex-1 text-[11px] font-semibold py-2 rounded-lg transition-colors hover:bg-(--cream-dark)" style={{ border: '1px solid var(--stone)', color: 'var(--charcoal)' }} onClick={() => setReviewingId(null)}>Cancelar</button>
                                     </div>
@@ -785,20 +686,20 @@ export default function AccountPage() {
                                   <button className="btn-copper text-[10px] px-3 py-1.5" onClick={() => { setReviewingId(res.id); setReviewForm({ rating: 5, comment: '' }); setReviewError('') }}>Valorar</button>
                                 </div>
                               )
-                            } else if (existingReview) {
+                            } else if (res.room_rating) {
                               return (
                                 <div className="p-4 rounded-xl mt-2" style={{ backgroundColor: 'var(--cream-dark)', border: '1px solid var(--stone)' }}>
                                   <div className="flex justify-between items-center mb-2">
                                     <p className="text-xs font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>Tu valoración</p>
                                     <div className="flex gap-0.5">
                                       {[1,2,3,4,5].map(star => (
-                                        <svg key={star} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={star <= existingReview.rating ? "currentColor" : "none"} stroke="currentColor" className="w-3.5 h-3.5" style={{ color: 'var(--copper)' }}>
+                                        <svg key={star} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={star <= (res.room_rating || 0) ? "currentColor" : "none"} stroke="currentColor" className="w-3.5 h-3.5" style={{ color: 'var(--copper)' }}>
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354l-4.543 2.826c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
                                         </svg>
                                       ))}
                                     </div>
                                   </div>
-                                  {existingReview.comment && <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>"{existingReview.comment}"</p>}
+                                  {res.room_review && <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>"{res.room_review}"</p>}
                                 </div>
                               )
                             }

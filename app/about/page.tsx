@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../lib/auth-context';
+import { supabase } from '../../lib/supabase';
 
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
@@ -51,45 +52,6 @@ interface Testimonio {
   status: 'approved' | 'pending';
 }
 
-const defaultTestimonios: Testimonio[] = [
-  {
-    id: '1',
-    nombre: 'Sofía Morales',
-    ciudad: 'Ciudad de México',
-    estrellas: 5,
-    texto: 'Una experiencia que no olvidaré. La habitación de Pátzcuaro tenía una vista increíble al manantial y cada detalle reflejaba el alma de Michoacán. Se siente como estar en casa, pero mejor.',
-    inicial: 'S',
-    status: 'approved',
-  },
-  {
-    id: '2',
-    nombre: 'Andrés y Valeria Castro',
-    ciudad: 'Guadalajara',
-    estrellas: 5,
-    texto: 'Fuimos por un fin de semana y nos quedamos con ganas de más. La tranquilidad de Quencio, la calidez del equipo y la belleza del lugar nos conquistaron desde el primer momento.',
-    inicial: 'A',
-    status: 'approved',
-  },
-  {
-    id: '3',
-    nombre: 'Roberto Sánchez',
-    ciudad: 'Monterrey',
-    estrellas: 5,
-    texto: 'Llegué buscando descanso y encontré mucho más: una historia detrás de cada habitación, un paisaje que te calma el alma y una familia que te recibe con el corazón abierto.',
-    inicial: 'R',
-    status: 'approved',
-  },
-  {
-    id: '4',
-    nombre: 'Familia Gutiérrez',
-    ciudad: 'Morelia',
-    estrellas: 5,
-    texto: 'Llevamos a nuestros hijos a conocer Quinta Dalam y fue una lección de historia, arte y tradición michoacana. Cada habitación es un mundo distinto. ¡Volvemos pronto!',
-    inicial: 'F',
-    status: 'approved',
-  },
-];
-
 export default function AboutPage() {
   const { user, profile, isAdmin } = useAuth();
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -104,14 +66,14 @@ export default function AboutPage() {
   useEffect(() => {
     const t = setTimeout(() => setIsMounted(true), 200);
     
-    const stored = localStorage.getItem('testimonios');
-    if (stored) {
-      setTestimonios(JSON.parse(stored));
-    } else {
-      localStorage.setItem('testimonios', JSON.stringify(defaultTestimonios));
-      setTestimonios(defaultTestimonios);
-    }
-    
+    const fetchTestimonios = async () => {
+      const { data } = await supabase
+        .from('testimonios')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) setTestimonios(data);
+    };
+    fetchTestimonios();
     return () => clearTimeout(t);
   }, []);
 
@@ -125,7 +87,7 @@ export default function AboutPage() {
     }
   }, [user, testimonios, existingTestimonioId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile || !user) return;
     
@@ -139,29 +101,28 @@ export default function AboutPage() {
     }
     setError('');
 
-    const testimonio: Testimonio = {
-      id: existingTestimonioId || Date.now().toString(),
+    const testimonioData = {
       user_id: user.id,
       nombre: (profile.nombre + ' ' + (profile.apellido || '')).trim() || 'Huésped',
       ciudad: newTestimonio.ciudad || 'Huésped verificado',
       estrellas: newTestimonio.estrellas,
       texto: newTestimonio.texto,
       inicial: profile.nombre ? profile.nombre[0].toUpperCase() : 'H',
-      status: 'pending',
+      status: 'pending' as const,
     };
     
-    let updated;
     if (existingTestimonioId) {
-      updated = testimonios.map(t => t.id === existingTestimonioId ? testimonio : t);
+      await supabase.from('testimonios').update(testimonioData).eq('id', existingTestimonioId);
+      setTestimonios(testimonios.map(t => t.id === existingTestimonioId ? { ...t, ...testimonioData } : t));
     } else {
-      updated = [testimonio, ...testimonios];
+      const { data } = await supabase.from('testimonios').insert(testimonioData).select().single();
+      if (data) {
+        setTestimonios([data, ...testimonios]);
+        setExistingTestimonioId(data.id);
+      }
     }
 
-    setTestimonios(updated);
-    localStorage.setItem('testimonios', JSON.stringify(updated));
-    
     setSubmitSuccess(true);
-    setExistingTestimonioId(testimonio.id);
     setTimeout(() => setSubmitSuccess(false), 4000);
   };
 

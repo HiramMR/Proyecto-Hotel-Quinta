@@ -10,6 +10,8 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
+import { supabase } from '../../lib/supabase'
+import ReCAPTCHA from 'react-google-recaptcha'
 
 export default function RegisterPage() {
   const [mounted, setMounted] = useState(false)
@@ -18,6 +20,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false)
   const router = useRouter()
   const { user } = useAuth()
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
   // Campos del formulario
   const [nombre, setNombre] = useState('')
@@ -70,41 +73,40 @@ export default function RegisterPage() {
       return
     }
 
+    if (!captchaToken) {
+      setError('Por favor, completa el reCAPTCHA para continuar.')
+      return
+    }
+
     setLoading(true)
 
-    setTimeout(() => {
-      const storedUsers = localStorage.getItem('users')
-      const users = storedUsers ? JSON.parse(storedUsers) : []
-
-      if (users.find((u: any) => u.email === correo)) {
-        setError('Este correo ya está registrado. Intenta iniciar sesión.')
-        setLoading(false)
-        return
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: correo.trim(),
+      password: contrasena,
+      options: {
+        data: {
+          nombre: nombre.trim(),
+          apellido: apellido.trim(),
+          telefono: telefono ? `${codigoPais} ${telefono.trim()}` : '',
+          role: 'user'
+        }
       }
+    })
 
-      const newUser = {
-        id: Date.now().toString(),
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        email: correo.trim(),
-        password: contrasena,
-        telefono: telefono ? `${codigoPais} ${telefono.trim()}` : '',
-        role: 'user',
-        created_at: new Date().toISOString()
-      }
-
-      users.push(newUser)
-      localStorage.setItem('users', JSON.stringify(users))
-
-      setSuccess(true)
+    if (signUpError) {
+      setError(signUpError.message)
       setLoading(false)
-    }, 800)
+      return
+    }
+
+    setSuccess(true)
+    setLoading(false)
   }
 
   // Pantalla de éxito
   if (success) {
     return (
-      <main className="min-h-screen flex items-center justify-center"
+      <main className="min-h-screen flex items-center justify-center pt-24 pb-12"
         style={{ backgroundColor: 'var(--cream)' }}>
         <div className="text-center max-w-sm px-6">
           <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
@@ -132,10 +134,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen flex overflow-hidden" style={{ backgroundColor: 'var(--charcoal)' }}>
+    <main className="min-h-screen flex" style={{ backgroundColor: 'var(--charcoal)' }}>
 
       {/* ── FORMULARIO (lado izquierdo) ── */}
-      <div className={`w-full lg:w-1/2 flex flex-col justify-center px-6 py-16 lg:px-16 xl:px-24 relative transition-all duration-1000 ease-out ${mounted ? 'translate-x-0 opacity-100' : '-translate-x-12 opacity-0'}`}
+      <div className={`w-full lg:w-1/2 flex flex-col justify-center px-6 pt-32 pb-16 lg:px-16 xl:px-24 relative transition-all duration-1000 ease-out ${mounted ? 'translate-x-0 opacity-100' : '-translate-x-12 opacity-0'}`}
         style={{ backgroundColor: 'var(--cream)' }}>
         <div className="relative w-full max-w-sm mx-auto">
 
@@ -164,7 +166,8 @@ export default function RegisterPage() {
           <form className="space-y-4" onSubmit={handleSubmit}>
 
             {/* Nombre y Apellido */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid grid-cols-2 gap-3 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: '400ms' }}>
               <div>
                 <label className="block text-xs font-semibold mb-2 uppercase tracking-widest"
                   style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
@@ -184,7 +187,8 @@ export default function RegisterPage() {
             </div>
 
             {/* Correo */}
-            <div>
+            <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: '450ms' }}>
               <label className="block text-xs font-semibold mb-2 uppercase tracking-widest"
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                 Correo Electrónico
@@ -194,7 +198,8 @@ export default function RegisterPage() {
             </div>
 
             {/* Teléfono */}
-            <div>
+            <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: '500ms' }}>
               <label className="block text-xs font-semibold mb-2 uppercase tracking-widest"
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                 Teléfono <span style={{ color: 'var(--text-light)', textTransform: 'none', letterSpacing: 0 }}>(opcional)</span>
@@ -214,7 +219,8 @@ export default function RegisterPage() {
             </div>
 
             {/* Contraseña */}
-            <div>
+            <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: '550ms' }}>
               <label className="block text-xs font-semibold mb-2 uppercase tracking-widest"
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                 Contraseña
@@ -224,7 +230,8 @@ export default function RegisterPage() {
             </div>
 
             {/* Confirmar contraseña */}
-            <div>
+            <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: '600ms' }}>
               <label className="block text-xs font-semibold mb-2 uppercase tracking-widest"
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                 Confirmar Contraseña
@@ -241,11 +248,23 @@ export default function RegisterPage() {
               </div>
             )}
 
+            {/* reCAPTCHA */}
+            <div className={`flex justify-center mt-4 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: '650ms' }}>
+              <ReCAPTCHA
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                onChange={(token) => setCaptchaToken(token)}
+              />
+            </div>
+
             {/* Botón submit */}
-            <button type="submit" className="btn-copper w-full text-center mt-2"
-              disabled={loading} style={{ opacity: loading ? 0.7 : 1 }}>
-              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
-            </button>
+            <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: '700ms' }}>
+              <button type="submit" className="btn-copper w-full text-center mt-2"
+                disabled={loading} style={{ opacity: loading ? 0.7 : 1 }}>
+                {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+              </button>
+            </div>
           </form>
 
           {/* Separador */}
@@ -274,7 +293,7 @@ export default function RegisterPage() {
       </div>
 
       {/* ── IMAGEN (lado derecho) ── */}
-      <div className={`hidden lg:flex lg:w-1/2 relative flex-col justify-end overflow-hidden transition-all duration-1000 ease-out ${mounted ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+      <div className={`hidden lg:flex lg:w-1/2 sticky top-0 h-screen flex-col justify-end overflow-hidden transition-all duration-1000 ease-out ${mounted ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
         <Image src="/img/room1.jpg" alt="Habitación Hotel Quinta Dalam" fill className="object-cover" priority
           style={{ transform: 'scale(1.04)', transformOrigin: 'center' }}
           onError={(e) => { (e.target as HTMLImageElement).src = '/img/banner.png' }} />

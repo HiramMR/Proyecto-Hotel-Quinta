@@ -15,6 +15,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
 import DatePicker from '../components/DatePicker'
+import { supabase } from '../../lib/supabase'
 
 interface Reservation {
   id: number
@@ -30,6 +31,8 @@ interface Reservation {
   payment_intent_id: string | null
   refund_id: string | null
   refund_requested: boolean | null
+  room_rating?: number | null
+  room_review?: string | null
   profiles: { nombre: string | null; apellido: string | null; telefono: string | null }
   rooms: { title: string; images: string[], stars?: number }
 }
@@ -40,8 +43,8 @@ interface UserProfile {
   apellido: string | null
   telefono: string | null
   role: string | null
-  created_at: string
-  email?: string
+  created_at: string | null
+  email: string
   password?: string
 }
 
@@ -104,75 +107,6 @@ const emptyRoom: Omit<Room, 'id'> = {
   images: [], amenities: [],
 }
 
-const defaultUsers: UserProfile[] = [
-  { id: '1', nombre: 'Admin', apellido: 'Sistema', email: 'admin@quintadalam.com', password: 'Admin123', telefono: '555-0000', role: 'admin', created_at: new Date().toISOString() },
-  { id: '2', nombre: 'Juan', apellido: 'Pérez', email: 'juan@example.com', password: 'Password123', telefono: '555-1234', role: 'user', created_at: new Date().toISOString() },
-  { id: '3', nombre: 'María', apellido: 'Gómez', email: 'maria@example.com', password: 'Password123', telefono: '555-5678', role: 'user', created_at: new Date().toISOString() }
-]
-
-const defaultReservations: Reservation[] = [
-  {
-    id: 1, user_id: '2', room_id: 1,
-    fecha_llegada: new Date(Date.now() - 86400000 * 20).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
-    noches: 5, total: 7250, metodo_pago: 'card', estado: 'confirmada',
-    created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: false,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  },
-  {
-    id: 2, user_id: '2', room_id: 2,
-    fecha_llegada: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 13).toISOString().split('T')[0],
-    noches: 2, total: 2600, metodo_pago: 'transfer', estado: 'pagada',
-    created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: false,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Paracho', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  },
-  {
-    id: 3, user_id: '2', room_id: 3,
-    fecha_llegada: new Date(Date.now() - 86400000 * 10).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 8).toISOString().split('T')[0],
-    noches: 2, total: 2400, metodo_pago: 'cash', estado: 'completada',
-    created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: false,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Yunuén', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 5 }
-  },
-  {
-    id: 4, user_id: '2', room_id: 4,
-    fecha_llegada: new Date(Date.now() - 86400000 * 5).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 3).toISOString().split('T')[0],
-    noches: 2, total: 3000, metodo_pago: 'transfer', estado: 'cancelada',
-    created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: true,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Pátzcuaro', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  },
-  {
-    id: 5, user_id: '2', room_id: 5,
-    fecha_llegada: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0],
-    noches: 1, total: 1100, metodo_pago: 'card', estado: 'reembolsada',
-    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-    payment_intent_id: null, refund_id: 're_123', refund_requested: false,
-    profiles: { nombre: 'Juan', apellido: 'Pérez', telefono: '555-1234' },
-    rooms: { title: 'Coeneo', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  },
-  {
-    id: 6, user_id: '3', room_id: 1,
-    fecha_llegada: new Date(Date.now() - 86400000 * 30).toISOString().split('T')[0],
-    fecha_salida: new Date(Date.now() - 86400000 * 27).toISOString().split('T')[0],
-    noches: 3, total: 4350, metodo_pago: 'card', estado: 'completada',
-    created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
-    payment_intent_id: null, refund_id: null, refund_requested: false,
-    profiles: { nombre: 'María', apellido: 'Gómez', telefono: '555-5678' },
-    rooms: { title: 'Tzintzuntzan', images: ['https://scontent-qro1-1.xx.fbcdn.net/v/t39.30808-6/615280862_122111746593156061_3912196455499954122_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeFlwMyVzMWh7Q0-Q3QgvD_-10j_04sPZ5nXSP_Tiw9nmYPjczFRAzIeN3zHGbtMHmzAH4FXLz8XPmCLRB8CmTbO&_nc_ohc=aijKVwecQN0Q7kNvwFw2yr2&_nc_oc=AdpzmBhhnlin11iiqP3-1Kpdg_FGU2eJLDSie-oSzSJxb7XOuaE-0IIxZgfHRF_EZZR8tPt0lCf-wS3fcwZu7Squ&_nc_zt=23&_nc_ht=scontent-qro1-1.xx&_nc_gid=Ao1jQQjqmnSQZH2An1xJQw&_nc_ss=7a32e&oh=00_AfwWU_fW30lvqElvjKOiZD7AGz7KQHAJPJ_-Fq5lAQie4w&oe=69C53FCD'], stars: 4 }
-  }
-]
-
 export default function AdminPage() {
   const { user, isAdmin, loading } = useAuth()
   const router = useRouter()
@@ -234,6 +168,7 @@ export default function AdminPage() {
   const [userForm, setUserForm] = useState({
     nombre: '', apellido: '', email: '', telefono: '', role: 'user', password: ''
   })
+  const [savingUser, setSavingUser] = useState(false)
   const [userFormError, setUserFormError] = useState('')
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
 
@@ -248,65 +183,63 @@ export default function AdminPage() {
   // Cargar reservaciones
   useEffect(() => {
     if (loading || !isAdmin) return
-    const stored = localStorage.getItem('reservations')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        parsed.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-        setReservations(parsed)
-      } catch (e) { console.error(e) }
-    } else {
-      localStorage.setItem('reservations', JSON.stringify(defaultReservations))
-      setReservations(defaultReservations)
-    }
-    setLoadingRes(false)
+    const fetchReservations = async () => {
+      const { data } = await supabase
+        .from('reservations')
+        .select('*, profiles(nombre, apellido, telefono), rooms(title, images, stars)')
+        .order('created_at', { ascending: false });
+      if (data) setReservations(data);
+      setLoadingRes(false);
+    };
+    fetchReservations();
   }, [isAdmin, loading])
 
   // Cargar usuarios
   useEffect(() => {
     if (loading || !isAdmin) return
-    const stored = localStorage.getItem('users')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        parsed.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-        setUsers(parsed)
-      } catch (e) { console.error(e) }
-    } else {
-      localStorage.setItem('users', JSON.stringify(defaultUsers))
-      setUsers(defaultUsers)
-    }
-    setLoadingUsers(false)
+    const fetchUsers = async () => {
+      const { data, error } = await supabase.rpc('get_all_users_with_email');
+        
+      if (error) {
+        console.error("Error al cargar usuarios:", error.message);
+      }
+      if (data) setUsers(data);
+      setLoadingUsers(false);
+    };
+    fetchUsers();
   }, [isAdmin, loading])
 
   // Cargar habitaciones
   useEffect(() => {
     if (loading || !isAdmin) return
-    const stored = localStorage.getItem('rooms')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        parsed.sort((a: any, b: any) => a.id - b.id)
-        setRooms(parsed)
-      } catch (e) { console.error(e) }
-    } else {
-      setRooms([])
-    }
-    setLoadingRooms(false)
+    const fetchRooms = async () => {
+      const { data } = await supabase
+        .from('rooms')
+        .select('*')
+        .order('id', { ascending: true });
+      if (data) {
+        setRooms(data.map(r => ({ ...r, longDescription: r.long_description })));
+      }
+      setLoadingRooms(false);
+    };
+    fetchRooms();
   }, [isAdmin, loading])
 
   // Cargar testimonios
   useEffect(() => {
     if (loading || !isAdmin) return
-    const stored = localStorage.getItem('testimonios')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        parsed.sort((a: any, b: any) => (a.status === 'pending' ? -1 : 1)) // Mostrar pendientes primero
-        setTestimonios(parsed)
-      } catch (e) { console.error(e) }
-    }
-    setLoadingTestimonios(false)
+    const fetchTestimonios = async () => {
+      const { data } = await supabase
+        .from('testimonios')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) {
+        data.sort((a, b) => (a.status === 'pending' ? -1 : 1));
+        setTestimonios(data);
+      }
+      setLoadingTestimonios(false);
+    };
+    fetchTestimonios();
   }, [isAdmin, loading])
 
   // ── Utilidades ──
@@ -320,15 +253,10 @@ export default function AdminPage() {
 
   // ── Cambiar estado de reservación ──
   const handleEstadoChange = async (id: number, nuevoEstado: string) => {
-    const stored = localStorage.getItem('reservations')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        const updated = parsed.map((r: any) => r.id === id ? { ...r, estado: nuevoEstado } : r)
-        localStorage.setItem('reservations', JSON.stringify(updated))
-      } catch (e) { console.error(e) }
+    const { error } = await supabase.from('reservations').update({ estado: nuevoEstado }).eq('id', id);
+    if (!error) {
+      setReservations(prev => prev.map(r => r.id === id ? { ...r, estado: nuevoEstado } : r));
     }
-    setReservations(prev => prev.map(r => r.id === id ? { ...r, estado: nuevoEstado } : r))
   }
 
   // ── Filtros aplicados ──
@@ -424,21 +352,26 @@ export default function AdminPage() {
 
     setRoomFormError('')
     setSavingRoom(true)
-    const stored = localStorage.getItem('rooms')
-    let parsedRooms: Room[] = stored ? JSON.parse(stored) : []
+
+    const roomData = {
+      title: roomForm.title,
+      description: roomForm.description,
+      long_description: roomForm.longDescription,
+      price: roomForm.price,
+      capacity: roomForm.capacity,
+      stars: roomForm.stars,
+      popular: roomForm.popular,
+      images: roomForm.images,
+      amenities: roomForm.amenities,
+    }
 
     if (editingRoom) {
-      // Editar existente
-      parsedRooms = parsedRooms.map(r => r.id === editingRoom.id ? { ...roomForm, id: editingRoom.id } as Room : r)
-      setRooms(parsedRooms)
+      await supabase.from('rooms').update(roomData).eq('id', editingRoom.id)
+      setRooms(rooms.map(r => r.id === editingRoom.id ? { ...roomForm, id: editingRoom.id } as Room : r))
     } else {
-      // Agregar nueva
-      const newId = parsedRooms.length > 0 ? Math.max(...parsedRooms.map(r => r.id)) + 1 : 1
-      const newRoom = { ...roomForm, id: newId } as Room
-      parsedRooms.push(newRoom)
-      setRooms(parsedRooms)
+      const { data } = await supabase.from('rooms').insert(roomData).select().single()
+      if (data) setRooms([...rooms, { ...roomForm, id: data.id }])
     }
-    localStorage.setItem('rooms', JSON.stringify(parsedRooms))
     setSavingRoom(false)
     setRoomModalOpen(false)
   }
@@ -446,16 +379,11 @@ export default function AdminPage() {
   // ── Eliminar habitación ──
   const handleDeleteRoom = async () => {
     if (!deleteRoomId) return
-    const stored = localStorage.getItem('rooms')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        const updated = parsed.filter((r: Room) => r.id !== deleteRoomId)
-        localStorage.setItem('rooms', JSON.stringify(updated))
-      } catch (e) { console.error(e) }
+    const { error } = await supabase.from('rooms').delete().eq('id', deleteRoomId)
+    if (!error) {
+      setRooms(prev => prev.filter(r => r.id !== deleteRoomId))
+      setDeleteRoomId(null)
     }
-    setRooms(prev => prev.filter(r => r.id !== deleteRoomId))
-    setDeleteRoomId(null)
   }
 
   // ── Guardar reservación manual ──
@@ -474,21 +402,17 @@ export default function AdminPage() {
     const room = rooms.find(r => r.id.toString() === resForm.room_id)
     if (!room) return setResFormError('Habitación inválida.')
 
-    let guestInfo;
     let userIdToUse;
     if (resForm.hasAccount) {
       const guest = users.find(u => u.id === resForm.user_id)
       if (!guest) return setResFormError('Usuario inválido.')
-      guestInfo = { nombre: guest.nombre, apellido: guest.apellido, telefono: guest.telefono }
       userIdToUse = guest.id
     } else {
-      guestInfo = { nombre: resForm.guestName, apellido: '', telefono: resForm.guestPhone }
-      userIdToUse = `guest_${Date.now()}`
+      userIdToUse = null
     }
 
-    const newRes: Reservation = {
-      id: Date.now(),
-      user_id: userIdToUse,
+    const resData = {
+      user_id: userIdToUse || null,
       room_id: room.id,
       fecha_llegada: resForm.fecha_llegada,
       fecha_salida: resForm.fecha_salida,
@@ -496,75 +420,122 @@ export default function AdminPage() {
       total: room.price * noches,
       metodo_pago: resForm.metodo_pago,
       estado: resForm.estado,
-      created_at: new Date().toISOString(),
-      payment_intent_id: null,
-      refund_id: null,
-      refund_requested: false,
-      profiles: guestInfo,
-      rooms: { title: room.title, images: room.images, stars: room.stars }
     }
 
-    const stored = localStorage.getItem('reservations')
-    const parsed = stored ? JSON.parse(stored) : []
-    const updated = [newRes, ...parsed]
-    localStorage.setItem('reservations', JSON.stringify(updated))
-    setReservations(prev => [newRes, ...prev])
-    setResModalOpen(false)
+    const saveProcess = async () => {
+      const { data, error } = await supabase.from('reservations').insert(resData).select('*, profiles(nombre, apellido, telefono), rooms(title, images, stars)').single()
+      if (data) {
+        setReservations(prev => [data, ...prev])
+        setResModalOpen(false)
+      } else {
+        setResFormError('Error al guardar la reservación.')
+      }
+    }
+    saveProcess()
   }
 
   // ── Guardar usuario ──
-  const handleSaveUser = () => {
-    if (!userForm.nombre?.trim()) return setUserFormError('El nombre es obligatorio.')
-    if (!userForm.email?.trim()) return setUserFormError('El correo es obligatorio.')
-    if (!editingUser && !userForm.password?.trim()) return setUserFormError('La contraseña es obligatoria.')
+  const handleSaveUser = async () => {
+    setUserFormError('');
+    setSavingUser(true);
 
-    if (editingUser && editingUser.id === user?.id && userForm.role !== 'admin') {
-      return setUserFormError('No puedes quitarte el rol de administrador a ti mismo.')
+    // ── Validaciones comunes ──
+    if (userForm.nombre.trim().length < 2 || userForm.nombre.trim().length > 50) {
+      setUserFormError('El nombre debe tener entre 2 y 50 caracteres.');
+      setSavingUser(false);
+      return;
     }
-
-    const stored = localStorage.getItem('users')
-    let parsedUsers: UserProfile[] = stored ? JSON.parse(stored) : []
+    if (userForm.apellido.trim().length < 2 || userForm.apellido.trim().length > 50) {
+      setUserFormError('El apellido debe tener entre 2 y 50 caracteres.');
+      setSavingUser(false);
+      return;
+    }
+    if (userForm.telefono && userForm.telefono.trim().length < 8) {
+      setUserFormError('El número de teléfono debe tener al menos 8 dígitos.');
+      setSavingUser(false);
+      return;
+    }
 
     if (editingUser) {
-      parsedUsers = parsedUsers.map(u => u.id === editingUser.id ? { ...u, ...userForm } as UserProfile : u)
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...userForm } as UserProfile : u))
-    } else {
-      const newUser: UserProfile = {
-        id: Date.now().toString(),
-        ...userForm,
-        created_at: new Date().toISOString()
+      if (editingUser.id === user?.id && userForm.role !== 'admin') {
+        setUserFormError('No puedes quitarte el rol de administrador a ti mismo.');
+        setSavingUser(false);
+        return;
       }
-      parsedUsers = [newUser, ...parsedUsers]
-      setUsers(prev => [newUser, ...prev])
+      const { error } = await supabase.from('profiles').update({ nombre: userForm.nombre, apellido: userForm.apellido, telefono: userForm.telefono, role: userForm.role }).eq('id', editingUser.id)
+      if (!error) {
+        setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, nombre: userForm.nombre, apellido: userForm.apellido, telefono: userForm.telefono, role: userForm.role } as UserProfile : u))
+        setUserModalOpen(false)
+      } else {
+        setUserFormError('Error al actualizar el usuario: ' + error.message)
+      }
+    } else { // Crear nuevo usuario
+      // Validar correo
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(userForm.email) || userForm.email.length > 100) {
+        setUserFormError('Ingresa un correo electrónico válido (máximo 100 caracteres).');
+        setSavingUser(false);
+        return;
+      }
+      // Validar contraseña
+      const passRegex = /^(?=.*[A-Z])(?=.*\d).{8,16}$/;
+      if (!passRegex.test(userForm.password || '')) {
+        setUserFormError('La contraseña debe tener entre 8 y 16 caracteres, incluir al menos una mayúscula y un número.');
+        setSavingUser(false);
+        return;
+      }
+          const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token}`
+            },
+        body: JSON.stringify(userForm),
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setUsers(prev => [result, ...prev]);
+        setUserModalOpen(false);
+      } else {
+        setUserFormError(result.error || 'Error al crear el usuario.');
+      }
     }
-    localStorage.setItem('users', JSON.stringify(parsedUsers))
-    setUserModalOpen(false)
+    setSavingUser(false);
   }
 
   // ── Eliminar usuario ──
-  const handleDeleteUser = () => {
-    if (!deleteUserId || deleteUserId === user?.id) return
-    const stored = localStorage.getItem('users')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      const updated = parsed.filter((u: UserProfile) => u.id !== deleteUserId)
-      localStorage.setItem('users', JSON.stringify(updated))
+  const handleDeleteUser = async () => {
+    if (!deleteUserId) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch('/api/admin/users', { 
+      method: 'DELETE', 
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`
+      }, 
+      body: JSON.stringify({ userId: deleteUserId }) 
+    });
+    if (response.ok) {
+      setUsers(prev => prev.filter(u => u.id !== deleteUserId));
     }
-    setUsers(prev => prev.filter(u => u.id !== deleteUserId))
-    setDeleteUserId(null)
+    setDeleteUserId(null);
   }
+
 
   // ── Aprobar / Rechazar testimonios ──
-  const handleApproveTestimonio = (id: string) => {
-    const updated = testimonios.map(t => t.id === id ? { ...t, status: 'approved' as const } : t)
-    setTestimonios(updated)
-    localStorage.setItem('testimonios', JSON.stringify(updated))
+  const handleApproveTestimonio = async (id: string) => {
+    const { error } = await supabase.from('testimonios').update({ status: 'approved' }).eq('id', id)
+    if (!error) {
+      setTestimonios(testimonios.map(t => t.id === id ? { ...t, status: 'approved' } : t))
+    }
   }
 
-  const handleRejectTestimonio = (id: string) => {
-    const updated = testimonios.filter(t => t.id !== id)
-    setTestimonios(updated)
-    localStorage.setItem('testimonios', JSON.stringify(updated))
+  const handleRejectTestimonio = async (id: string) => {
+    const { error } = await supabase.from('testimonios').delete().eq('id', id)
+    if (!error) {
+      setTestimonios(testimonios.filter(t => t.id !== id))
+    }
   }
 
   // Toggle amenidad en el formulario
@@ -870,17 +841,12 @@ export default function AdminPage() {
                           {/* Botón marcar como reembolsado */}
                           <button
                             onClick={async () => {
-                              const stored = localStorage.getItem('reservations')
-                              if (stored) {
-                                try {
-                                  const parsed = JSON.parse(stored)
-                                  const updated = parsed.map((r: any) => r.id === res.id ? { ...r, refund_requested: false, estado: 'reembolsada' } : r)
-                                  localStorage.setItem('reservations', JSON.stringify(updated))
-                                } catch (e) { console.error(e) }
-                              }
+                            const { error } = await supabase.from('reservations').update({ refund_requested: false, estado: 'reembolsada' }).eq('id', res.id)
+                            if (!error) {
                               setReservations(prev =>
                                 prev.map(r => r.id === res.id ? { ...r, refund_requested: false, estado: 'reembolsada' } : r)
                               )
+                            }
                             }}
                             className="text-xs px-4 py-2 rounded-lg font-semibold transition-all"
                             style={{
@@ -962,7 +928,7 @@ export default function AdminPage() {
                       </p>
                       <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                         {u.email ?? 'Sin correo'} · {u.telefono ?? 'Sin teléfono'}
-                        {' · '}Registrado el {new Date(u.created_at).toLocaleDateString('es-MX')}
+                        {u.created_at ? ` · Registrado el ${new Date(u.created_at).toLocaleDateString('es-MX')}` : ''}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
@@ -975,9 +941,11 @@ export default function AdminPage() {
                         {u.role ?? 'user'}
                       </span>
                       <div className="flex gap-2">
-                        <button onClick={() => { setEditingUser(u); setUserForm({ nombre: u.nombre||'', apellido: u.apellido||'', email: u.email||'', telefono: u.telefono||'', role: u.role||'user', password: u.password||'' }); setUserFormError(''); setUserModalOpen(true); }} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,129,58,0.1)', color: 'var(--copper)', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,129,58,0.2)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,129,58,0.2)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,129,58,0.1)'}>Editar</button>
+                        <button onClick={() => { setEditingUser(u); setUserForm({ nombre: u.nombre||'', apellido: u.apellido||'', email: u.email||'', telefono: u.telefono||'', role: u.role||'user', password: '' }); setUserFormError(''); setUserModalOpen(true); }} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,129,58,0.1)', color: 'var(--copper)', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,129,58,0.2)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,129,58,0.2)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,129,58,0.1)'}>Editar</button>
                         {u.id !== user?.id && (
-                          <button onClick={() => setDeleteUserId(u.id)} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,60,60,0.2)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.15)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,60,60,0.08)'}>Eliminar</button>
+                          <button onClick={() => setDeleteUserId(u.id)} className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: 'rgba(200,60,60,0.08)', color: '#c03c3c', fontFamily: 'var(--font-ui)', border: '1px solid rgba(200,60,60,0.2)' }}>
+                            Eliminar
+                          </button>
                         )}
                       </div>
                     </div>
@@ -1455,17 +1423,25 @@ export default function AdminPage() {
                   <input type="text" className="input-warm" value={userForm.apellido} onChange={e => setUserForm(p => ({ ...p, apellido: e.target.value }))} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Correo electrónico</label>
-                  <input type="email" className="input-warm" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} />
-                </div>
+              {!editingUser && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Correo electrónico</label>
+                    <input type="email" className="input-warm" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Contraseña</label>
+                    <input type="password" className="input-warm" placeholder="Mínimo 8 caracteres" value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} />
+                  </div>
+                </>
+              )}
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Teléfono</label>
                   <input type="text" className="input-warm" value={userForm.telefono} onChange={e => setUserForm(p => ({ ...p, telefono: e.target.value }))} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Rol</label>
                   <select className="input-warm" value={userForm.role} onChange={e => setUserForm(p => ({ ...p, role: e.target.value }))} disabled={editingUser?.id === user?.id} style={{ opacity: editingUser?.id === user?.id ? 0.7 : 1, cursor: editingUser?.id === user?.id ? 'not-allowed' : 'auto' }}>
@@ -1476,10 +1452,6 @@ export default function AdminPage() {
                     <p className="text-[10px] mt-1" style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>No puedes cambiar tu propio rol.</p>
                   )}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Contraseña {editingUser && '(Opcional)'}</label>
-                  <input type="password" className="input-warm" placeholder={editingUser ? 'Dejar en blanco para no cambiar' : ''} value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} />
-                </div>
               </div>
             </div>
             {userFormError && (
@@ -1488,38 +1460,15 @@ export default function AdminPage() {
               </div>
             )}
             <div className="px-8 pb-8 flex gap-3">
-              <button onClick={handleSaveUser} className="btn-copper flex-1 text-center">Guardar usuario</button>
+              <button onClick={handleSaveUser} disabled={savingUser} className="btn-copper flex-1 text-center" style={{ opacity: savingUser ? 0.7 : 1 }}>
+                {savingUser ? 'Guardando...' : (editingUser ? 'Guardar cambios' : 'Crear usuario')}
+              </button>
               <button onClick={() => setUserModalOpen(false)} className="px-6 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>Cancelar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          MODAL: CONFIRMAR ELIMINACIÓN DE USUARIO
-      ══════════════════════════════════════════ */}
-      {deleteUserId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(44,36,32,0.6)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-sm p-8 rounded-2xl"
-            style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', boxShadow: 'var(--shadow-lg)' }}>
-            <h3 className="font-display text-xl mb-3" style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
-              ¿Eliminar usuario?
-            </h3>
-            <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
-              Esta acción no se puede deshacer. Las reservaciones asociadas podrían quedar sin usuario asignado.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={handleDeleteUser} className="btn-copper flex-1 text-center" style={{ backgroundColor: '#c03c3c', boxShadow: 'none' }}>
-                Sí, eliminar
-              </button>
-              <button onClick={() => setDeleteUserId(null)} className="flex-1 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }} onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--cream-dark)'} onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ══════════════════════════════════════════
           MODAL: CONFIRMAR ELIMINACIÓN
@@ -1549,6 +1498,30 @@ export default function AdminPage() {
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}>
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          MODAL: CONFIRMAR ELIMINACIÓN DE USUARIO
+      ══════════════════════════════════════════ */}
+      {deleteUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(44,36,32,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm p-8 rounded-2xl"
+            style={{ backgroundColor: 'var(--cream)', border: '1px solid var(--stone)', boxShadow: 'var(--shadow-lg)' }}>
+            <h3 className="font-display text-xl mb-3" style={{ fontFamily: 'var(--font-display)', color: 'var(--charcoal)' }}>
+              ¿Eliminar usuario?
+            </h3>
+            <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-body)', fontStyle: 'italic' }}>
+              Esta acción es irreversible. El usuario y todas sus reservaciones asociadas serán eliminados.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={handleDeleteUser} className="btn-copper flex-1 text-center" style={{ backgroundColor: '#c03c3c', boxShadow: 'none' }}>
+                Sí, eliminar
+              </button>
+              <button onClick={() => setDeleteUserId(null)} className="flex-1 py-3 rounded-lg text-sm font-semibold transition-colors" style={{ border: '1.5px solid var(--stone)', color: 'var(--charcoal)', fontFamily: 'var(--font-ui)' }}>Cancelar</button>
             </div>
           </div>
         </div>

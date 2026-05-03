@@ -8,6 +8,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { supabase } from './supabase'
 
 interface User {
   id: string;
@@ -49,42 +50,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [profileLoaded, setProfileLoaded] = useState(false)
 
-  const initAuth = useCallback(() => {
-    // 1. Asegurarnos de que siempre existan los usuarios por defecto
-    let storedUsers = localStorage.getItem('users')
-    if (!storedUsers || JSON.parse(storedUsers).length === 0) {
-      const defaultUsers = [
-        { id: '1', nombre: 'Admin', apellido: 'Sistema', email: 'admin@quintadalam.com', password: 'Admin123', telefono: '555-0000', role: 'admin', created_at: new Date().toISOString() },
-        { id: '2', nombre: 'Juan', apellido: 'Pérez', email: 'juan@example.com', password: 'Password123', telefono: '555-1234', role: 'user', created_at: new Date().toISOString() },
-        { id: '3', nombre: 'María', apellido: 'Gómez', email: 'maria@example.com', password: 'Password123', telefono: '555-5678', role: 'user', created_at: new Date().toISOString() }
-      ]
-      localStorage.setItem('users', JSON.stringify(defaultUsers))
-      storedUsers = JSON.stringify(defaultUsers)
-    }
-
-    const storedUser = localStorage.getItem('currentUser')
-    if (storedUser) {
-      try {
-        const userObj = JSON.parse(storedUser)
-        setUser({ id: userObj.id, email: userObj.email })
-
-        const users = JSON.parse(storedUsers)
-        const userProfile = users.find((u: any) => u.id === userObj.id)
+  const initAuth = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (session?.user) {
+      setUser({ id: session.user.id, email: session.user.email })
+      
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
         
-        if (userProfile) {
-          setProfile(userProfile)
-        } else {
-          setProfile(null)
-        }
-      } catch (e) {
-        console.error('Error al cargar sesión local', e)
-        setUser(null)
-        setProfile(null)
-      }
+      setProfile(profileData)
     } else {
       setUser(null)
       setProfile(null)
     }
+    
     setProfileLoaded(true)
     setLoading(false)
   }, [])
@@ -92,46 +75,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initAuth()
 
-    // Escuchar cambios en localStorage para sincronizar pestañas
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'currentUser' || e.key === 'users') {
-        initAuth()
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      initAuth()
+    })
+    return () => subscription.unsubscribe()
   }, [initAuth])
 
   const signIn = async (email: string, password: string) => {
-    // 2. Verificar datos nuevamente en el momento de iniciar sesión
-    let storedUsers = localStorage.getItem('users')
-    if (!storedUsers || JSON.parse(storedUsers).length === 0) {
-      const defaultUsers = [
-        { id: '1', nombre: 'Admin', apellido: 'Sistema', email: 'admin@quintadalam.com', password: 'Admin123', telefono: '555-0000', role: 'admin', created_at: new Date().toISOString() },
-        { id: '2', nombre: 'Juan', apellido: 'Pérez', email: 'juan@example.com', password: 'Password123', telefono: '555-1234', role: 'user', created_at: new Date().toISOString() },
-        { id: '3', nombre: 'María', apellido: 'Gómez', email: 'maria@example.com', password: 'Password123', telefono: '555-5678', role: 'user', created_at: new Date().toISOString() }
-      ]
-      localStorage.setItem('users', JSON.stringify(defaultUsers))
-      storedUsers = JSON.stringify(defaultUsers)
-    }
-
-    const users = JSON.parse(storedUsers)
-    // 3. Ignorar espacios accidentales o mayúsculas
-    const userObj = users.find((u: any) => 
-      u.email.toLowerCase().trim() === email.toLowerCase().trim() && u.password === password
-    )
-    
-    if (userObj) {
-      localStorage.setItem('currentUser', JSON.stringify({ id: userObj.id, email: userObj.email }))
-      initAuth()
-      return { error: null }
-    }
-    return { error: { message: 'Credenciales inválidas o usuario no encontrado.' } }
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (!error) await initAuth()
+    return { error }
   }
 
   const signOut = async () => {
-    localStorage.removeItem('currentUser')
-    initAuth()
+    await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
   }

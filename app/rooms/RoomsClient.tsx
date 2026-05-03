@@ -13,6 +13,7 @@ import Carousel from '../components/Carousel';
 import RoomCard from '../components/RoomCard';
 import RoomModal from '../components/RoomModal';
 import DatePicker from '../components/DatePicker';
+import { supabase } from '../../lib/supabase';
 
 function useInView(threshold = 0.05, rootMargin = '20px') {
   const ref = useRef<HTMLDivElement>(null);
@@ -65,22 +66,22 @@ interface RoomData {
 }
 
 // Wrapper necesario para useSearchParams dentro de Suspense
-export default function RoomsClient() {
+export default function RoomsClient({ initialRooms }: { initialRooms: RoomData[] }) {
   return (
     <Suspense fallback={
       <main style={{ backgroundColor: 'var(--cream)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>Cargando...</p>
       </main>
     }>
-      <RoomsContent />
+      <RoomsContent initialRooms={initialRooms} />
     </Suspense>
   );
 }
 
-function RoomsContent() {
+function RoomsContent({ initialRooms }: { initialRooms: RoomData[] }) {
   const searchParams = useSearchParams();
 
-  const [localRooms, setLocalRooms] = useState<RoomData[]>([]);
+  const [localRooms, setLocalRooms] = useState<RoomData[]>(initialRooms);
   const llegadaParam = searchParams.get('llegada') ?? '';
   const salidaParam  = searchParams.get('salida')  ?? '';
 
@@ -115,45 +116,32 @@ function RoomsContent() {
 
   useEffect(() => {
     const t = setTimeout(() => setIsMounted(true), 200);
-    
-    // Cargar habitaciones desde localStorage
-    const storedRooms = localStorage.getItem('rooms');
-    if (storedRooms) {
-      try {
-        setLocalRooms(JSON.parse(storedRooms));
-      } catch (err) {
-        console.error('Error al parsear habitaciones del localStorage', err);
-      }
-    }
-    
     return () => clearTimeout(t);
   }, []);
 
-  // Consultamos las reservaciones desde localStorage
+  // Consultamos las reservaciones desde Supabase
   useEffect(() => {
     if (!llegadaParam || !salidaParam) {
       setUnavailableIds([]);
       return;
     }
-    const fetchOcupadas = () => {
-      const storedReservations = localStorage.getItem('reservations');
-      if (storedReservations) {
-        try {
-          const reservations = JSON.parse(storedReservations);
-          const ocupadas = reservations.filter((r: any) =>
-            ['confirmada', 'pagada'].includes(r.estado) &&
-            r.fecha_llegada < salidaParam &&
-            r.fecha_salida > llegadaParam
-          );
-          setUnavailableIds(ocupadas.map((r: any) => r.room_id));
-        } catch (err) {
-          console.error('Error al parsear reservaciones del localStorage', err);
-          setUnavailableIds([]);
-        }
-      } else {
-        setUnavailableIds([]);
+    
+    const fetchOcupadas = async () => {
+      const { data } = await supabase
+        .from('reservations')
+        .select('room_id')
+        .in('estado', ['confirmada', 'pagada'])
+        // Lógica de cruce de fechas en SQL (overlaps):
+        // Fecha de llegada en DB debe ser menor a la salida buscada
+        // Y la fecha de salida en DB debe ser mayor a la llegada buscada
+        .lt('fecha_llegada', salidaParam)
+        .gt('fecha_salida', llegadaParam);
+        
+      if (data) {
+        setUnavailableIds(data.map(r => r.room_id));
       }
     };
+    
     fetchOcupadas();
   }, [llegadaParam, salidaParam]);
 

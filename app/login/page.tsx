@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../lib/auth-context'
+import ReCAPTCHA from 'react-google-recaptcha'
 
 export default function LoginPage() {
   const [mounted, setMounted] = useState(false)
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [contrasena, setContrasena] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const router = useRouter()
   const { user, signIn } = useAuth()
 
@@ -45,6 +47,11 @@ export default function LoginPage() {
       return
     }
 
+    if (!captchaToken) {
+      setError('Por favor, completa el reCAPTCHA para continuar.')
+      return
+    }
+
     setLoading(true)
 
     const { error } = await signIn(correo, contrasena)
@@ -59,10 +66,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex overflow-hidden" style={{ backgroundColor: 'var(--charcoal)' }}>
+    <main className="min-h-screen flex" style={{ backgroundColor: 'var(--charcoal)' }}>
 
       {/* ── LADO IZQUIERDO — imagen ── */}
-      <div className={`hidden lg:flex lg:w-1/2 relative flex-col justify-end overflow-hidden transition-all duration-1000 ease-out ${mounted ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}>
+      <div className={`hidden lg:flex lg:w-1/2 sticky top-0 h-screen flex-col justify-end overflow-hidden transition-all duration-1000 ease-out ${mounted ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}>
         <Image src="/img/banner.png" alt="Hotel Quinta Dalam" fill className="object-cover" priority
           style={{ transform: 'scale(1.04)', transformOrigin: 'center' }} />
         <div className="absolute inset-0"
@@ -85,7 +92,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── LADO DERECHO — formulario ── */}
-      <div className={`w-full lg:w-1/2 flex flex-col justify-center px-6 py-16 lg:px-16 xl:px-24 relative transition-all duration-1000 ease-out ${mounted ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}
+      <div className={`w-full lg:w-1/2 flex flex-col justify-center px-6 pt-32 pb-16 lg:px-16 xl:px-24 relative transition-all duration-1000 ease-out ${mounted ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}
         style={{ backgroundColor: 'var(--cream)' }}>
         <div className="relative w-full max-w-sm mx-auto">
 
@@ -160,6 +167,15 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+
+            {/* reCAPTCHA */}
+            <div className={`flex justify-center mt-4 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: '550ms' }}>
+              <ReCAPTCHA
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                onChange={(token) => setCaptchaToken(token)}
+              />
+            </div>
 
             {/* Botón submit */}
             <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}

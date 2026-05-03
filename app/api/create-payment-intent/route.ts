@@ -1,35 +1,29 @@
 // ============================================================
 // app/api/create-payment-intent/route.ts
-//
-// API Route que corre en el servidor (nunca en el navegador).
-// Recibe el monto y crea un PaymentIntent en Stripe.
-// Devuelve el clientSecret que el frontend usa para confirmar el pago.
-//
-// IMPORTANTE: La secret key de Stripe solo se usa aquí,
-// nunca llega al navegador.
+// Crea un "Intento de Pago" en Stripe y devuelve el client_secret
+// que el frontend requiere para procesar el pago de forma segura.
 // ============================================================
-import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover',
-})
+  apiVersion: '2026-02-25.clover' as any,
+});
 
 export async function POST(req: NextRequest) {
   try {
-    const { amount, currency, metadata } = await req.json()
+    const { amount, reservationId } = await req.json();
 
-    // Crear el PaymentIntent en Stripe
-    // amount debe estar en centavos (ej: $250 USD = 25000)
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // convertir a centavos
-      currency: currency ?? 'mxn',
-      automatic_payment_methods: { enabled: true },
-      metadata, // datos extra: room_id, user_id, fechas, etc.
-    })
+      amount: Math.round(amount * 100), // Stripe exige procesar en centavos
+      currency: 'mxn',
+      metadata: {
+        reservationId: reservationId.toString(),
+      },
+    });
 
-    return NextResponse.json({ clientSecret: paymentIntent.client_secret })
+    return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
