@@ -31,6 +31,47 @@ export default function RegisterPage() {
   const [contrasena, setContrasena] = useState('')
   const [confirmar, setConfirmar] = useState('')
 
+  // Nuevos estados para validación en tiempo real
+  const [emailStatus, setEmailStatus] = useState<'idle'|'checking'|'available'|'duplicate'|'invalid'>('idle')
+  const [passChecks, setPassChecks] = useState({ length: false, upper: false, number: false })
+  const [passMatch, setPassMatch] = useState(false)
+
+  // Validar contraseña en tiempo real
+  useEffect(() => {
+    setPassChecks({
+      length: contrasena.length >= 8 && contrasena.length <= 16,
+      upper: /[A-Z]/.test(contrasena),
+      number: /\d/.test(contrasena)
+    })
+    setPassMatch(contrasena.length > 0 && contrasena === confirmar)
+  }, [contrasena, confirmar])
+
+  // Validar correo en tiempo real
+  useEffect(() => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!correo) return setEmailStatus('idle')
+    if (!emailRegex.test(correo) || correo.length > 100) return setEmailStatus('invalid')
+
+    setEmailStatus('checking')
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/check-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: correo.trim() })
+        })
+        const data = await res.json()
+        if (data.exists) setEmailStatus('duplicate')
+        else setEmailStatus('available')
+      } catch (err) {
+        // En caso de error de red, permitimos enviar para que Supabase haga la validación nativa
+        setEmailStatus('available') 
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [correo])
+
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 100)
     return () => clearTimeout(t)
@@ -57,6 +98,10 @@ export default function RegisterPage() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(correo) || correo.length > 100) {
       setError('Ingresa un correo electrónico válido (máximo 100 caracteres).')
+      return
+    }
+    if (emailStatus === 'duplicate') {
+      setError('Este correo electrónico ya está registrado.')
       return
     }
     if (telefono && telefono.length < 8) {
@@ -193,8 +238,31 @@ export default function RegisterPage() {
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                 Correo Electrónico
               </label>
-              <input type="email" className="input-warm" placeholder="tu@correo.com"
-                value={correo} onChange={e => setCorreo(e.target.value)} maxLength={100} required />
+              <div className="relative">
+                <input type="email" className="input-warm pr-10" placeholder="tu@correo.com"
+                  value={correo} onChange={e => setCorreo(e.target.value)} maxLength={100} required />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {emailStatus === 'checking' && (
+                    <svg className="animate-spin h-4 w-4" style={{ color: 'var(--copper)' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {emailStatus === 'available' && (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-green-600">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  )}
+                  {(emailStatus === 'duplicate' || emailStatus === 'invalid') && correo.length > 0 && (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-red-500">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              {emailStatus === 'duplicate' && (
+                <p className="text-xs text-red-500 mt-1">Este correo ya está registrado.</p>
+              )}
             </div>
 
             {/* Teléfono */}
@@ -225,8 +293,24 @@ export default function RegisterPage() {
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                 Contraseña
               </label>
-              <input type="password" className="input-warm" placeholder="••••••••"
+              <input type="password" className="input-warm mb-2" placeholder="••••••••"
                 value={contrasena} onChange={e => setContrasena(e.target.value)} maxLength={16} required />
+                
+              {/* Validaciones visuales en tiempo real */}
+              <div className="flex flex-col gap-1 mt-1 text-xs">
+                <span className={`flex items-center gap-1.5 transition-colors ${passChecks.length ? 'text-green-600' : 'text-gray-400'}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                  De 8 a 16 caracteres
+                </span>
+                <span className={`flex items-center gap-1.5 transition-colors ${passChecks.upper ? 'text-green-600' : 'text-gray-400'}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                  Al menos una letra mayúscula
+                </span>
+                <span className={`flex items-center gap-1.5 transition-colors ${passChecks.number ? 'text-green-600' : 'text-gray-400'}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                  Al menos un número
+                </span>
+              </div>
             </div>
 
             {/* Confirmar contraseña */}
@@ -236,8 +320,17 @@ export default function RegisterPage() {
                 style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
                 Confirmar Contraseña
               </label>
-              <input type="password" className="input-warm" placeholder="••••••••"
-                value={confirmar} onChange={e => setConfirmar(e.target.value)} maxLength={16} required />
+              <div className="relative">
+                <input type="password" className="input-warm pr-10" placeholder="••••••••"
+                  value={confirmar} onChange={e => setConfirmar(e.target.value)} maxLength={16} required />
+                {passMatch && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-green-600">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Error */}
