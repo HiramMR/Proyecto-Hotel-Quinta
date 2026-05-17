@@ -282,14 +282,18 @@ export default function Footer() {
 
           {/* ── Logos de validación W3C ── */}
           <div className="flex items-center gap-3">
-            <a href="https://validator.w3.org/" target="_blank" rel="noopener noreferrer"
+            <a href="https://validator.w3.org/nu/?level=warning&doc=https%3A%2F%2Fmain.d2kx5h59lo3rs1.amplifyapp.com%2F"
+              target="_blank"
+              rel="noopener noreferrer"
               title="Valid HTML 4.01">
               <img src="/img/valid-html401.png" alt="Valid HTML 4.01"
                 style={{ height: '24px', width: 'auto', opacity: 0.8, transition: 'opacity 0.2s' }}
                 onMouseEnter={e => (e.currentTarget as HTMLImageElement).style.opacity = '1'}
                 onMouseLeave={e => (e.currentTarget as HTMLImageElement).style.opacity = '0.8'} />
             </a>
-            <a href="https://jigsaw.w3.org/css-validator/" target="_blank" rel="noopener noreferrer"
+            <a href="https://jigsaw.w3.org/css-validator/validator?uri=https%3A%2F%2Fmain.d2kx5h59lo3rs1.amplifyapp.com%2F&profile=css3svg&usermedium=all&warning=1&vextwarning=&lang=es"
+              target="_blank"
+              rel="noopener noreferrer"
               title="Valid CSS">
               <img src="/img/valid-css.png" alt="Valid CSS"
                 style={{ height: '24px', width: 'auto', opacity: 0.8, transition: 'opacity 0.2s' }}
