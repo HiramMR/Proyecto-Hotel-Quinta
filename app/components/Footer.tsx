@@ -291,7 +291,7 @@ export default function Footer() {
                 onMouseEnter={e => (e.currentTarget as HTMLImageElement).style.opacity = '1'}
                 onMouseLeave={e => (e.currentTarget as HTMLImageElement).style.opacity = '0.8'} />
             </a>
-            <a href="https://jigsaw.w3.org/css-validator/validator?uri=https%3A%2F%2Fmain.d2kx5h59lo3rs1.amplifyapp.com%2F&profile=css3svg&usermedium=all&warning=1&vextwarning=&lang=es"
+            <a href="https://jigsaw.w3.org/css-validator/validator?uri=https%3A%2F%2Fmain.d2kx5h59lo3rs1.amplifyapp.com%2Fcustom-styles.css&profile=css3svg&usermedium=all&warning=1&vextwarning=&lang=es"
               target="_blank"
               rel="noopener noreferrer"
               title="Valid CSS">
