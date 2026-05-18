@@ -6,12 +6,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover' as any,
-});
-
 export async function POST(req: NextRequest) {
   try {
+    // 1. Validar que la variable de entorno se esté inyectando correctamente
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY no está definida en el servidor (AWS Amplify).');
+    }
+
+    // 2. Inicializar Stripe DENTRO del manejador de la ruta
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16' as any, // Versión estable de la API de Stripe
+    });
+
     const { amount, reservationId } = await req.json();
 
     const paymentIntent = await stripe.paymentIntents.create({
